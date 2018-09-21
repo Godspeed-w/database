@@ -58,16 +58,14 @@ public class Client_application extends JFrame {
 		addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
-				if(socket.isConnected()){
-					try {
-						OutputStream outToServer = socket.getOutputStream();
-						DataOutputStream send = new DataOutputStream(outToServer);
-						send.writeUTF("quit");
-						socket.close();
-						textArea_message.append("close connection...\n");
-					} catch (IOException e1) {
-						e1.printStackTrace();
-					}
+				try {
+					OutputStream outToServer = socket.getOutputStream();
+					DataOutputStream send = new DataOutputStream(outToServer);
+					send.writeUTF("quit");
+					socket.close();
+					textArea_message.append("close connection...\n");
+				} catch (IOException e1) {
+					e1.printStackTrace();
 				}
 			}
 		});
@@ -130,11 +128,11 @@ public class Client_application extends JFrame {
 		textArea_message.setFont(new Font("Monospaced", Font.PLAIN, 14));
 		scrollPane_1.setViewportView(textArea_message);
 		
-		JLabel label = new JLabel("服务器地�?�?");
+		JLabel label = new JLabel("\u670D\u52A1\u5668\u5730\u5740\uFF1A");
 		label.setBounds(24, 10, 79, 15);
 		contentPane.add(label);
 		
-		JLabel label_1 = new JLabel("端口�?");
+		JLabel label_1 = new JLabel("\u7AEF\u53E3\uFF1A");
 		label_1.setBounds(62, 49, 54, 15);
 		contentPane.add(label_1);
 		
@@ -150,7 +148,7 @@ public class Client_application extends JFrame {
 		contentPane.add(textField_port);
 		textField_port.setColumns(10);
 		
-		JButton button_1 = new JButton("连接服务�?");
+		JButton button_1 = new JButton("\u5F00\u542F\u8FDE\u63A5");
 		//start connection
 		button_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
@@ -171,7 +169,7 @@ public class Client_application extends JFrame {
 		contentPane.add(button_1);
 		
 		//close connection
-		JButton button_2 = new JButton("断开服务�?");
+		JButton button_2 = new JButton("\u5173\u95ED\u8FDE\u63A5");
 		button_2.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				if(socket.isConnected()){
@@ -190,7 +188,7 @@ public class Client_application extends JFrame {
 		button_2.setBounds(332, 62, 113, 23);
 		contentPane.add(button_2);
 		
-		JButton btnNewButton = new JButton("清空记录");
+		JButton btnNewButton = new JButton("\u6E05\u7A7A\u663E\u793A");
 		btnNewButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				textArea_message.setText(null);

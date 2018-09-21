@@ -114,7 +114,7 @@ public class Server_application extends JFrame {
 		btnNewButton.setBounds(303, 24, 93, 23);
 		contentPane.add(btnNewButton);
 		
-		JLabel label_1 = new JLabel("在线客户端数：");
+		JLabel label_1 = new JLabel("\u5728\u7EBF\u5BA2\u6237\u7AEF\u6570\uFF1A");
 		label_1.setBounds(10, 75, 93, 15);
 		contentPane.add(label_1);
 		
@@ -124,7 +124,7 @@ public class Server_application extends JFrame {
 		contentPane.add(textField_totleclient);
 		textField_totleclient.setColumns(10);
 		
-		JButton button_1 = new JButton("清空记录");
+		JButton button_1 = new JButton("\u6E05\u7A7A\u663E\u793A");
 		button_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				textArea.setText(null);
