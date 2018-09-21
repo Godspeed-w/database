@@ -33,6 +33,9 @@ public class Client_application extends JFrame {
 	private JTextArea textArea_message;
 	private Socket socket;
 	
+	JButton button_start;
+	JButton button_close;
+	JButton button_excute;
 	
 	/**
 	 * Launch the application.
@@ -59,11 +62,13 @@ public class Client_application extends JFrame {
 			@Override
 			public void windowClosing(WindowEvent e) {
 				try {
-					OutputStream outToServer = socket.getOutputStream();
-					DataOutputStream send = new DataOutputStream(outToServer);
-					send.writeUTF("quit");
-					socket.close();
-					textArea_message.append("close connection...\n");
+					if(socket!=null) {
+						OutputStream outToServer = socket.getOutputStream();
+						DataOutputStream send = new DataOutputStream(outToServer);
+						send.writeUTF("quit");
+						socket.close();
+						textArea_message.append("close connection...\n");
+					}
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
@@ -91,9 +96,12 @@ public class Client_application extends JFrame {
 		lblNewLabel.setBounds(10, 113, 68, 15);
 		contentPane.add(lblNewLabel);
 		
-		JButton button = new JButton("\u6267\u884C");
+		button_excute = new JButton("\u6267\u884C");
+		if(socket==null) {
+			button_excute.setEnabled(false);
+		}
 		//excute sql 
-		button.addActionListener(new ActionListener() {
+		button_excute.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				try {
 					OutputStream outToServer = socket.getOutputStream();
@@ -103,22 +111,22 @@ public class Client_application extends JFrame {
 					
 					String sql = textArea_sql.getText().trim();
 					send.writeUTF(sql);
-					System.out.println("add");
-					
 					if(sql.equals("quit")) {
 						socket.close();
+						button_start.setEnabled(true);
+						button_close.setEnabled(false);
+						button_excute.setEnabled(false);
 						textArea_message.append("close connection...\n");
 					}
-					
 					textArea_message.append("receive:\n"+recive.readUTF());
-					System.out.println("add2");
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+				
 			}
 		});
-		button.setBounds(332, 143, 93, 23);
-		contentPane.add(button);
+		button_excute.setBounds(332, 143, 93, 23);
+		contentPane.add(button_excute);
 		
 		JScrollPane scrollPane_1 = new JScrollPane();
 		scrollPane_1.setBounds(10, 176, 435, 242);
@@ -148,14 +156,17 @@ public class Client_application extends JFrame {
 		contentPane.add(textField_port);
 		textField_port.setColumns(10);
 		
-		JButton button_1 = new JButton("\u5F00\u542F\u8FDE\u63A5");
+		button_start = new JButton("\u5F00\u542F\u8FDE\u63A5");
 		//start connection
-		button_1.addActionListener(new ActionListener() {
+		button_start.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				String address = textField_address.getText().trim();
 				int port = Integer.parseInt(textField_port.getText().trim());
 				try {
 					socket = new Socket(address,port);
+					button_excute.setEnabled(true);
+					button_close.setEnabled(true);
+					button_start.setEnabled(false);
 					textArea_message.append("connection successful...\n");
 				} catch (UnknownHostException e) {
 					e.printStackTrace();
@@ -165,36 +176,42 @@ public class Client_application extends JFrame {
 				}
 			}
 		});
-		button_1.setBounds(332, 20, 113, 23);
-		contentPane.add(button_1);
+		button_start.setBounds(332, 20, 113, 23);
+		contentPane.add(button_start);
 		
 		//close connection
-		JButton button_2 = new JButton("\u5173\u95ED\u8FDE\u63A5");
-		button_2.addActionListener(new ActionListener() {
+		button_close = new JButton("\u5173\u95ED\u8FDE\u63A5");
+		if(socket==null) {
+			button_close.setEnabled(false);
+		}
+		button_close.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				if(socket.isConnected()){
-					try {
+				try {
+					if(socket.isConnected()||(socket!=null)){
 						OutputStream outToServer = socket.getOutputStream();
 						DataOutputStream send = new DataOutputStream(outToServer);
 						send.writeUTF("quit");
 						socket.close();
+						button_start.setEnabled(true);
+						button_close.setEnabled(false);
+						button_excute.setEnabled(false);
 						textArea_message.append("close connection...\n");
-					} catch (IOException e) {
-						e.printStackTrace();
 					}
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
 			}
 		});
-		button_2.setBounds(332, 62, 113, 23);
-		contentPane.add(button_2);
+		button_close.setBounds(332, 62, 113, 23);
+		contentPane.add(button_close);
 		
-		JButton btnNewButton = new JButton("\u6E05\u7A7A\u663E\u793A");
-		btnNewButton.addActionListener(new ActionListener() {
+		JButton button_clear = new JButton("\u6E05\u7A7A\u663E\u793A");
+		button_clear.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				textArea_message.setText(null);
 			}
 		});
-		btnNewButton.setBounds(332, 95, 113, 23);
-		contentPane.add(btnNewButton);
+		button_clear.setBounds(332, 95, 113, 23);
+		contentPane.add(button_clear);
 	}
 }
