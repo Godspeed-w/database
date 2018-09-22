@@ -1,12 +1,13 @@
 {
 	"name":"王军",
+	"pwd":"666",
 	"total":{
 		"name":"wangjun",
 		"pwd":"123"
 	},
 	"shuzu":[
 		{
-			"name":"梁媛",
+			"name":"军军",
 			"pwd":"123"
 		},{
 			"name":"liangyuan",
