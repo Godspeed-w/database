@@ -118,7 +118,7 @@ public class Client_application extends JFrame {
 						button_excute.setEnabled(false);
 						textArea_message.append("close connection...\n");
 					}
-					textArea_message.append("receive:\n"+recive.readUTF());
+					textArea_message.append("receive:\n"+recive.readUTF()+"\n");
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

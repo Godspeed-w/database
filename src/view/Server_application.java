@@ -6,6 +6,9 @@ import java.awt.EventQueue;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+
+import dao.Checksql;
+
 import javax.swing.JButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -176,9 +179,11 @@ public class Server_application extends JFrame {
 						textField_totleclient.setText(String.valueOf(totleWorkThread.size()));
 						this.stop();
 					}
-					
+			
 					textArea.append("receive:\n"+sql+"\n");
-					send.writeUTF("ni hao\n");
+					long start_time = System.currentTimeMillis()
+					String response = Checksql.doSql(sql);
+					send.writeUTF(response);
 					
 				} catch (IOException e) {
 					e.printStackTrace();
