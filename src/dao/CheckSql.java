@@ -1,6 +1,7 @@
 package dao;
 
 import bean.SqlInformation;
+import util.TestUtil;
 
 public class CheckSql {
 	
@@ -11,18 +12,15 @@ public class CheckSql {
 			return "missing ';'";
 		}
 		String [] sql_split = sql.split(" ");
-		for (String string : sql_split) {
-			System.out.print(string+" ");
-		}
-		System.out.println();
+		TestUtil.showArray("服务器收到的Sql：",sql_split);
 		
 		switch(sql_split[0]){
 			case "create":
 				if(sql_split[1].equals("database")) {
 					return Method.createDataBase(sql_split[2]);
 				}
-				if(sql_split[1].equals("tables")){
-					
+				if(sql_split[1].equals("table")){
+					return Method.createTable(sql);
 				}
 				break;
 			case "show":

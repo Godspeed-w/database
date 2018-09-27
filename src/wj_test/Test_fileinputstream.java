@@ -14,12 +14,17 @@ public class Test_fileinputstream {
 		//编号	姓名	职称	工资	手机号码	所在系编号
 		//T017	崔嘉鼎	讲师	4111	18045386734	04
 		//读字节， 返回的是字节的十进制表示法
+		// ASCII 对照表 http://ascii.911cha.com/
 		int a = fis.read();
 		System.out.println(a);
-//		int b = fis.read();
-//		int aa = fis.read();
-//		int bb1 = fis.read();
-//		int bb2 = fis.read();
+		int b = fis.read();
+		System.out.println(b);
+		int aa = fis.read();
+		System.out.println(aa);
+		int bb1 = fis.read();
+		System.out.println(bb1);
+		int bb2 = fis.read();
+		System.out.println(bb2);
 //		System.out.println(Integer.toHexString(a)+" "+a+" "+Integer.toHexString(b)+" "+b);
 
 		byte[] by = new byte[6];
@@ -32,6 +37,9 @@ public class Test_fileinputstream {
 		}
 		System.out.println();
 		String c = new String(by, "GBK");
+		int cc = by.hashCode();
+		
+				
 		System.out.println(c);
 		fis.close();
 	}

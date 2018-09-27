@@ -1,0 +1,19 @@
+{
+	"tableName":"test",
+	"column":[
+		{
+			"col_name":" ",
+			"type":" ",
+			"size":" ",
+			"isNull":" ",
+			"isPrimaryKey":" "
+		},{
+			"col_name":" ",
+			"type":" ",
+			"size":" ",
+			"isNull":" ",
+			"isPrimaryKey":" "
+		}
+	]
+	
+}
