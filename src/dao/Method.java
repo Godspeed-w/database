@@ -2,6 +2,8 @@ package dao;
 
 import java.awt.List;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import bean.ColumnConfig;
@@ -31,7 +33,7 @@ public class Method {
 	 * @param tableSql
 	 * @return String
 	 */
-	public static String createTable(String tableSql){
+	public static String createTable(String tableSql,String currentDbName) throws IOException{
 		//生成表结构对象
 		TableConfig tableconfig = new TableConfig();			
 		
@@ -41,9 +43,8 @@ public class Method {
 		int startColumns = tableSql.indexOf("(");
 		int endColumns = tableSql.lastIndexOf(")");
 		String sql_tempColumns = tableSql.substring(startColumns+1, endColumns).trim();
-		System.out.println(sql_tempColumns);
+	
 		String[] sql_column = sql_tempColumns.split(",");
-		TestUtil.showArray("拆分出来的含列的全部数据：",sql_column);
 		
 		for(String str : sql_column) {
 			String[] strTemp = str.split(" ");
@@ -51,20 +52,21 @@ public class Method {
 			//处理有主键的情况
 			if(strTemp[0].equals("primary")) {
 				if(strTemp[1].equals("key")) {
-					
+					String primaryKey = TestUtil.ridQuotes(strTemp[2]);
+					tableconfig.setPrimaryKey(primaryKey);
 				}else {
 					return "create table syntax error";
 				}
 			}else {
 				//无主键的列
-				String col_name = strTemp[0];
-				String type = strTemp[2];
-				boolean isNotNull = str.matches("not null");
+				String col_name = TestUtil.ridQuotes(strTemp[0]);
+				String type = strTemp[1];
+				boolean isNotNull = str.contains("not null");
 				
-				int size = 4;
+				int size = 0;
 				if(type.equals("int")) {
 					size = 4;
-				}else if(type.matches("char")) {
+				}else if(type.contains("char")) {
 					int start = type.indexOf("(");
 					int end = type.lastIndexOf(")");
 					size = Integer.parseInt(type.substring(start+1, end));
@@ -77,17 +79,27 @@ public class Method {
 				cf.setType(type);
 				cf.setSize(size);
 				cf.setNull(isNotNull);
-				
 				tableconfig.getCfs().add(cf);
-				
 			}
 			
 		}
 		
-//		String[] sql_splitBySpace = tableSql.split(" ");
-//		String tableName = sql_splitBySpace[2];
-//		String[] columns = null;
-		
+		File fl = new File("db/"+currentDbName+"/"+tableconfig.getTableName()+".txt");
+		File flConfig = new File("db/"+currentDbName+"/"+tableconfig.getTableName()+".json");
+		if(fl.exists() && flConfig.exists()) {
+			return "this table alrady exist";
+		}else {
+			fl.createNewFile();
+			flConfig.createNewFile();
+			FileWriter fw = new FileWriter(flConfig);
+			
+			String tempColumn = "";
+			for(ColumnConfig tempCf : tableconfig.getCfs()) {
+				tempColumn = tempCf.strJson()+",";
+			}
+			String tbInformation = "";
+					
+		}
 		
 		
 		return "OK";

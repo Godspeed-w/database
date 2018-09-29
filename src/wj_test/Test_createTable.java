@@ -19,11 +19,11 @@ public class Test_createTable {
 			  `submission_date` date DEFAULT NULL)
 }
 
-CREATE TABLE Persons
+create table Persons
 (
 Id_P int,
-LastName varchar(255),
-FirstName varchar(255),
-Address varchar(255),
-City varchar(255)
-)
+LastName char(255),
+FirstName char(255),
+Address char(255),
+City char(255)
+);

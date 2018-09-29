@@ -11,6 +11,17 @@ public class ColumnConfig {
 	private boolean isNull = false;
 	
 
+	public String strJson() {
+		String str = 
+				"{"+
+					"\"col_name\":\"" + col_name + "\"," +
+					"\"type\":\"" + type + "\"," +
+					"\"size\":\"" + size + "\"," +
+					"\"isNull\":\"" + isNull + "\"," +
+				"}";
+
+		return str;
+	}
 	public String getCol_name() {
 		return col_name;
 	}

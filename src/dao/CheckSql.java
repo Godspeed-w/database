@@ -1,5 +1,7 @@
 package dao;
 
+import java.io.IOException;
+
 import bean.SqlInformation;
 import util.TestUtil;
 
@@ -20,7 +22,11 @@ public class CheckSql {
 					return Method.createDataBase(sql_split[2]);
 				}
 				if(sql_split[1].equals("table")){
-					return Method.createTable(sql);
+					try {
+						return Method.createTable(sql,sqlInfo.getDbName());
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
 				break;
 			case "show":
