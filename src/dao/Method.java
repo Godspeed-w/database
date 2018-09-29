@@ -83,7 +83,7 @@ public class Method {
 			}
 			
 		}
-		
+		//开始创建JSON配置文件与表
 		File fl = new File("db/"+currentDbName+"/"+tableconfig.getTableName()+".txt");
 		File flConfig = new File("db/"+currentDbName+"/"+tableconfig.getTableName()+".json");
 		if(fl.exists() && flConfig.exists()) {
@@ -91,18 +91,23 @@ public class Method {
 		}else {
 			fl.createNewFile();
 			flConfig.createNewFile();
-			FileWriter fw = new FileWriter(flConfig);
 			
 			String tempColumn = "";
+			int num = 0;
 			for(ColumnConfig tempCf : tableconfig.getCfs()) {
-				tempColumn = tempCf.strJson()+",";
+				num++;
+				if(num < tableconfig.getCfs().size()) {
+					tempColumn = tempCf.strJson()+",";					
+				}else {
+					tempColumn = tempCf.strJson();	
+				}
 			}
+			
 			String tbInformation = "";
+			
+			return TestUtil.writeFile(tbInformation, flConfig);
 					
 		}
-		
-		
-		return "OK";
 	}
 	
 	

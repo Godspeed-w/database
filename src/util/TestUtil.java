@@ -1,5 +1,8 @@
 package util;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.LineNumberInputStream;
 
 public class TestUtil {
@@ -21,5 +24,16 @@ public class TestUtil {
 		}
 		return sentence;
 	}
+	//写新文件内容
+	public static String writeFile(String sentence , File file) throws IOException {
+		if(file.exists()) {
+			FileWriter fw = new FileWriter(file);	
+			fw.write(sentence);
+		}else {
+			return "this table is not exist";
+		}
+		return "OK";
+	}
+	//追加文件内容
 	
 }

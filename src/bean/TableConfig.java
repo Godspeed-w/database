@@ -10,6 +10,11 @@ public class TableConfig {
 	//Ö÷¼ü
 	private String primaryKey = null ;
 	
+	public String strJson() {
+		
+		return "OK";
+	}
+	
 	public String getTableName() {
 		return tableName;
 	}
