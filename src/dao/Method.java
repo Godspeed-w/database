@@ -2,13 +2,15 @@ package dao;
 
 import java.awt.List;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 
 import bean.ColumnConfig;
 import bean.TableConfig;
-import util.TestUtil;
+import util.Util;
 
 
 public class Method {
@@ -52,14 +54,14 @@ public class Method {
 			//处理有主键的情况
 			if(strTemp[0].equals("primary")) {
 				if(strTemp[1].equals("key")) {
-					String primaryKey = TestUtil.ridQuotes(strTemp[2]);
+					String primaryKey = Util.ridQuotes(strTemp[2]);
 					tableconfig.setPrimaryKey(primaryKey);
 				}else {
 					return "create table syntax error";
 				}
 			}else {
 				//无主键的列
-				String col_name = TestUtil.ridQuotes(strTemp[0]);
+				String col_name = Util.ridQuotes(strTemp[0]);
 				String type = strTemp[1];
 				boolean isNotNull = str.contains("not null");
 				
@@ -105,7 +107,7 @@ public class Method {
 			
 			String tbInformation = "";
 			
-			return TestUtil.writeFile(tbInformation, flConfig);
+			return Util.writeFile(tbInformation, flConfig);
 					
 		}
 	}
@@ -223,6 +225,63 @@ public class Method {
 		return currentDbName;
 	}
 	
+	/**
+	 * 查询表中全部信息
+	 * @param tableName
+	 * @param currentDbName
+	 * @param flag
+	 * @param condition
+	 * @return
+	 */
+	public static String selectAllFromTable(String tableName,String currentDbName) throws IOException{
+		File fi = new File("db/"+currentDbName+"/"+tableName+".txt");
+		if(!fi.exists()){
+			return "This table is not exist";
+		}
+		
+		FileInputStream in = new FileInputStream(fi);
+		byte [] readByte = new byte[400];
+		int n=0;
+		String s="";
+		while((n=in.read(readByte, 0, readByte.length))!=-1) {
+			String tt = new String(readByte,0,n);
+			s += tt;
+			System.out.print(tt);
+		}
+		in.close();
+		if(s=="") {
+			return "Empty set";
+		}
+		return s;
+	}
+	
+	/**
+	 * 根据条件查询
+	 * @param tableName
+	 * @param currentDbName
+	 * @param flag
+	 * @param condition
+	 * @return
+	 * @throws IOException 
+	 */
+	public static String selectFlagFromTable(String tableName,String currentDbName,String flag,String condition) throws IOException{
+		File fi = new File("db/"+currentDbName+"/"+tableName+".txt");
+		if(!fi.exists()){
+			return "This table is not exist";
+		}
+		
+		FileInputStream in = new FileInputStream(fi);
+		byte [] readByte = new byte[1];
+		int n=0;
+		String s="";
+		while((n=in.read(readByte, 0, readByte.length))!=-1) {
+			String tt = new String(readByte,0,n);
+			s += tt;
+			System.out.print(tt);
+		}
+		in.close();
+		return "OK";
+	}
 	
 //	public static String dropDatabase3(){
 //		

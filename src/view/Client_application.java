@@ -27,7 +27,7 @@ import java.awt.event.WindowEvent;
 public class Client_application extends JFrame {
 
 	private JPanel contentPane;
-	private JTextArea textArea_sql;
+	private JTextArea txtrSelectFrom;
 	private JTextField textField_address;
 	private JTextField textField_port;
 	private JTextArea textArea_message;
@@ -87,10 +87,11 @@ public class Client_application extends JFrame {
 		scrollPane.setBounds(72, 94, 250, 72);
 		contentPane.add(scrollPane);
 		
-		textArea_sql = new JTextArea();
-		textArea_sql.setColumns(5);
-		textArea_sql.setLineWrap(true);
-		scrollPane.setViewportView(textArea_sql);
+		txtrSelectFrom = new JTextArea();
+		txtrSelectFrom.setText("select \u5B66\u53F7,\u59D3\u540D from \u5B66\u751F\u8868 where \u5B66\u53F7=121;");
+		txtrSelectFrom.setColumns(5);
+		txtrSelectFrom.setLineWrap(true);
+		scrollPane.setViewportView(txtrSelectFrom);
 		
 		JLabel lblNewLabel = new JLabel("\u8F93\u5165\u547D\u4EE4\uFF1A");
 		lblNewLabel.setBounds(10, 113, 68, 15);
@@ -109,7 +110,7 @@ public class Client_application extends JFrame {
 					InputStream inFromServer = socket.getInputStream();
 					DataInputStream recive = new DataInputStream(inFromServer); 
 					
-					String sql = textArea_sql.getText().trim();
+					String sql = txtrSelectFrom.getText().trim();
 					send.writeUTF(sql);
 					if(sql.equals("quit")) {
 						socket.close();

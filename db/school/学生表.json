@@ -1,0 +1,42 @@
+{
+	"tableName":"学生表",
+	"column":[
+		{
+			"col_name":"学号",
+			"type":" ",
+			"size":"9",
+			"isNull":" ",
+			"isPrimaryKey":" "
+		},{
+			"col_name":"姓名",
+			"type":" ",
+			"size":"6",
+			"isNull":" ",
+			"isPrimaryKey":" "
+		},{
+			"col_name":"性别",
+			"type":" ",
+			"size":"2",
+			"isNull":" ",
+			"isPrimaryKey":" "
+		},{
+			"col_name":"所在系",
+			"type":" ",
+			"size":"2",
+			"isNull":" ",
+			"isPrimaryKey":" "
+		},{
+			"col_name":"手机号码",
+			"type":" ",
+			"size":"11",
+			"isNull":" ",
+			"isPrimaryKey":" "
+		},{
+			"col_name":"寝室",
+			"type":" ",
+			"size":"2",
+			"isNull":" ",
+			"isPrimaryKey":" "
+		}
+	]
+}

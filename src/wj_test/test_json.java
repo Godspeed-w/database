@@ -30,6 +30,7 @@ public class test_json {
 		JSONObject jo = new JSONObject(str1);
 		System.out.println("Õû¸öjson\n"+jo.toString());
 		
+		
 		String name = jo.getString("name");
 		int pwd = jo.getInt("pwd");
 		System.out.println("name:"+name+",pwd:"+pwd);
