@@ -66,7 +66,7 @@ public class Test_1 {
 		
 		File file=new File("db/school/教师表.txt");
 		System.out.println(Util.readRandom(file, 5, 11));
-		
+		System.out.println(Util.readRandom(file, 12, 16));
 //		T017	崔嘉鼎	讲师	4111	18045386734	04
 //		T005	赵洪	讲师	4300	13203122701	01
 	}
