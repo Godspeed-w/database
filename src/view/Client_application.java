@@ -88,7 +88,7 @@ public class Client_application extends JFrame {
 		contentPane.add(scrollPane);
 		
 		txtrSelectFrom = new JTextArea();
-		txtrSelectFrom.setText("select \u5B66\u53F7,\u59D3\u540D from \u5B66\u751F\u8868 where \u5B66\u53F7=121;");
+		txtrSelectFrom.setText("select \u5B66\u53F7,\u59D3\u540D from \u5B66\u751F\u8868 where \u5B66\u53F7=200906091;");
 		txtrSelectFrom.setColumns(5);
 		txtrSelectFrom.setLineWrap(true);
 		scrollPane.setViewportView(txtrSelectFrom);

@@ -57,14 +57,14 @@ public class CheckSql {
 			case "update":
 				break;
 			case "select":
-				String flag = sql_split[1];
-				String tablename = sql_split[3];
 				if(sql_split[1].equals("database()")){
 					return Method.selectDatabase(currentDbName);
 				}
 				if(sql_split[1].equals("*")){
 					return Method.selectAllFromTable(sql_split[3],currentDbName);
 				}
+				String flag = sql_split[1];
+				String tablename = sql_split[3];
 				if(!sql_split[1].equals("*")){
 					return Method.selectFlagFromTable(sql_split[3], currentDbName, flag, sql_split[5]);
 				}

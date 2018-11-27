@@ -4,11 +4,17 @@ import java.awt.List;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+
+import org.json.JSONObject;
+import org.json.JSONTokener;
 
 import bean.ColumnConfig;
+import bean.ColumnData;
 import bean.TableConfig;
 import util.Util;
 
@@ -256,7 +262,7 @@ public class Method {
 	}
 	
 	/**
-	 * 根据条件查询
+	 * 根据条件查询   !!！只实现单条件等号判断
 	 * @param tableName
 	 * @param currentDbName
 	 * @param flag
@@ -265,22 +271,50 @@ public class Method {
 	 * @throws IOException 
 	 */
 	public static String selectFlagFromTable(String tableName,String currentDbName,String flag,String condition) throws IOException{
-		File fi = new File("db/"+currentDbName+"/"+tableName+".txt");
-		if(!fi.exists()){
+		File fileTxt = new File("db/"+currentDbName+"/"+tableName+".txt");
+		File fileJson = new File("db/"+currentDbName+"/"+tableName+".json");
+		if(!fileTxt.exists()&&!fileJson.exists()){
 			return "This table is not exist";
 		}
+		JSONTokener jt = new JSONTokener(new FileReader(fileJson));
+		JSONObject jo = (JSONObject)jt.nextValue();
+		int numColumn = jo.getJSONArray("column").length();
 		
-		FileInputStream in = new FileInputStream(fi);
-		byte [] readByte = new byte[1];
-		int n=0;
-		String s="";
-		while((n=in.read(readByte, 0, readByte.length))!=-1) {
-			String tt = new String(readByte,0,n);
-			s += tt;
-			System.out.print(tt);
+		ArrayList<ColumnData> list = Util.fileToList(fileTxt, fileJson);
+		
+		ArrayList<Integer> numRow = new ArrayList<Integer>();
+		String [] arrayFlag = flag.split(",");
+		
+		//使用正则表达...
+		String [] arrayCondition = condition.split("=");
+		//select 学号,姓名 from 学生表 where 学号=200902009;
+		//将查询到的数存在临时list中
+		for (ColumnData lis : list) {
+			if(lis.getCloumn().equals(arrayCondition[0])) {
+				if(lis.getData().equals(arrayCondition[1])) {
+					numRow.add(lis.getRow());
+				}
+			}
 		}
-		in.close();
-		return "OK";
+		//输出相应的字段
+		if(numRow.size()!=0) {
+			String a="";
+			int j=0;
+			for (int i = 0; i <numRow.size(); i++) {
+				for (ColumnData lisTemp : list) {
+					if(lisTemp.getRow()==numRow.get(i)&& Arrays.asList(arrayFlag).contains(lisTemp.getCloumn())) {
+						j++;
+						if(j%arrayFlag.length==0) {
+							a +=lisTemp.getData()+"\n";							
+						}else {
+							a +=lisTemp.getData()+"\t";							
+						}
+					}
+				}				
+			}
+			return a;
+		}
+		return "no result";
 	}
 	
 //	public static String dropDatabase3(){

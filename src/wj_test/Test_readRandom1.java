@@ -11,7 +11,7 @@ import org.json.JSONObject;
 
 import util.Util;
 
-public class Test_1 {
+public class Test_readRandom1 {
 	public static void main(String[] args) throws IOException {
 		
 			//解析json文件,获取表的列长度
