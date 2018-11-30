@@ -9,12 +9,15 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Iterator;
 
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import bean.ColumnConfig;
 import bean.ColumnData;
+import bean.ColumnRow;
 import bean.TableConfig;
 import util.Util;
 
@@ -263,6 +266,7 @@ public class Method {
 	
 	/**
 	 * 根据条件查询   !!！只实现单条件等号判断
+	 * 1、给定某个学生的学号，查询这个学生的相关信息（姓名，性别，所在系名，所在寝室名称）
 	 * @param tableName
 	 * @param currentDbName
 	 * @param flag
@@ -276,9 +280,6 @@ public class Method {
 		if(!fileTxt.exists()&&!fileJson.exists()){
 			return "This table is not exist";
 		}
-		JSONTokener jt = new JSONTokener(new FileReader(fileJson));
-		JSONObject jo = (JSONObject)jt.nextValue();
-		int numColumn = jo.getJSONArray("column").length();
 		
 		ArrayList<ColumnData> list = Util.fileToList(fileTxt, fileJson);
 		
@@ -316,6 +317,307 @@ public class Method {
 		}
 		return "no result";
 	}
+	
+	/**
+	 * 2、给定某个学生的学号，查询选修了这位学生全部课程的学生信息。
+	 * @param tableName
+	 * @param currentDbName
+	 * @param stuNo
+	 * @param conditio
+	 * @return
+	 * @throws IOException
+	 */
+	public static String selectInfoByCourse(String tableName,String currentDbName,String stuNo) throws IOException{
+		File fileTxtCS = new File("db/"+currentDbName+"/学生选课表.txt");
+		File fileJsonCS = new File("db/"+currentDbName+"/学生选课表.json");
+		
+		//获取行数组
+		ArrayList<ColumnRow> listRow = Util.fileToListByRow(fileTxtCS, fileJsonCS);
+		
+//		System.out.println("行数："+listRow.size());
+		ArrayList<Integer> numRow = new ArrayList<Integer>();
+		//将查询到的数存在临时list中
+		for (ColumnRow lis : listRow) {
+			if(lis.getCds().get(0).getData().equals(stuNo)) {
+				numRow.add(lis.getCds().get(0).getRow());
+			}
+		}
+		//存储该学生的所有课程
+		ArrayList<String> tempCourse = new ArrayList<String>();
+		for (Integer integer : numRow) {
+			for (ColumnRow columnRow : listRow) {
+				if(columnRow.getRowNum()==integer.intValue()) {
+					tempCourse.add(columnRow.getCds().get(1).getData());
+				}
+			}
+		}
+		
+		//移除没有选这些课程的学生+并且移除所查询的那个学生
+		boolean jud = true;
+		boolean tempJud = true;
+		while(jud) {
+			for (int i = 0; i < listRow.size(); i++) {
+				if(stuNo.equals(listRow.get(i).getCds().get(0).getData())){
+					listRow.remove(i);
+					tempJud=false;
+					break;
+				}
+				if(!tempCourse.contains(listRow.get(i).getCds().get(1).getData())){
+					listRow.remove(i);
+					tempJud=false;
+					break;
+				}
+			}
+			if(jud&&tempJud) {
+				jud=false;				
+			}
+			tempJud = true;
+		}
+//		System.out.println("移除后的listRow的大小："+listRow.size());
+		
+		//数据库有问题，还需要继续移除。。。。。
+		ArrayList<ColumnRow> row = new ArrayList<ColumnRow>();
+		for (int i = 0; i < listRow.size(); i++) {
+			if(i==0) {
+				row.add(listRow.get(i));
+			}else {
+				jud = true;
+				tempJud = true;
+				for (int j = 0; j < row.size(); j++) {
+					if(row.get(j).getCds().get(0).getData().equals(listRow.get(i).getCds().get(0).getData())) {
+						if(row.get(j).getCds().get(1).getData().equals(listRow.get(i).getCds().get(1).getData())) {
+							tempJud=false;
+							break;
+						}
+					}
+				}
+				if(jud&&tempJud) {
+					row.add(listRow.get(i));			
+				}
+			}
+		}
+//		System.out.println("第二次操作后row的大小："+row.size());
+//		//输出
+//		int b=0;
+//		for (ColumnRow ll : row) {
+//			System.out.print(ll.getCds().get(0).getData()+" ");
+//			b++;
+//			if(b%10==0) {
+//				System.out.println(b/10+"行：");
+//			}
+//		}
+		
+		//判断同时都选这些课程的学生
+		ArrayList<Integer> num = new ArrayList<Integer>();//存出现次数
+		
+		for (int i = 0; i < row.size(); i++) {
+			int tt=0;  
+			for(int j=0;j<row.size();j++) {
+				if(row.get(j).getCds().get(0).getData().equals(row.get(i).getCds().get(0).getData())){
+					tt++;
+				}
+			}
+			num.add(tt);
+		}
+		//输出
+//		int aa=0;
+//		for (Integer integer : num) {
+//			aa++;
+//			if(aa%10==0) {
+//				System.out.println(aa/10+"行：");
+//			}else {
+//				System.out.print(integer+" ");
+//			}
+//		}
+		//将出现次数与同学所有课程数目相同的学生学号存储起来
+		ArrayList<String> tempStus = new ArrayList<String>();//存学号
+		
+		for (int i = 0; i < num.size(); i++) {
+			jud=true;
+			if(num.get(i)==tempCourse.size()) {
+				if(!tempStus.isEmpty()) {
+					for (String string : tempStus) {
+						if(string.equals(row.get(i).getCds().get(0).getData())) {
+							jud=false;
+							break;
+						}
+					}
+				}	
+				if(jud) {
+					tempStus.add(row.get(i).getCds().get(0).getData());											
+				}
+			}
+		}
+		//输出
+//		for (String string : tempStus) {
+//			System.out.println("找到的学生："+string);
+//		}
+		if(!tempStus.isEmpty()) {
+			String result ="";
+			for (int i = 0; i < tempStus.size(); i++) {
+				result += selectFlagFromTable("学生表", currentDbName, "学号,姓名,性别,所在系,手机号,寝室", "学号="+tempStus.get(i));
+			}
+			return result;
+		}
+		return "no result";
+	}
+	
+	/**
+	 * 3、给定某个教师的工号，查询其所上的每门课的平均成绩。
+	 * @param tableName
+	 * @param currentDbName
+	 * @param Tno
+	 * @return
+	 * @throws IOException
+	 */
+	public static String selectInfoByTno(String tableName,String currentDbName,String Tno) throws IOException{
+		File fileTxtTC = new File("db/"+currentDbName+"/教师授课表.txt");
+		File fileJsonTC = new File("db/"+currentDbName+"/教师授课表.json");
+		
+		//获取行数组
+		ArrayList<ColumnRow> listRowTC = Util.fileToListByRow(fileTxtTC, fileJsonTC);
+		
+		System.out.println("行数："+listRowTC.size());
+		ArrayList<Integer> numRowTC = new ArrayList<Integer>();
+		//将查询到的数存在临时list中
+		for (ColumnRow lis : listRowTC) {
+			if(lis.getCds().get(0).getData().equals(Tno)) {
+				numRowTC.add(lis.getCds().get(0).getRow());
+			}
+		}
+		//存储该教师教授的所有课程
+		ArrayList<String> tempCourse = new ArrayList<String>();
+		for (Integer integer : numRowTC) {
+			for (ColumnRow columnRow : listRowTC) {
+				if(columnRow.getRowNum()==integer.intValue()) {
+					tempCourse.add(columnRow.getCds().get(1).getData());
+				}
+			}
+		}
+		for (String string : tempCourse) {
+			System.out.println("教授课程："+string);
+		}
+		
+		/*
+		 * 第二次查询，查询学生选课表
+		 */
+		
+		File fileTxtCS = new File("db/"+currentDbName+"/学生选课表.txt");
+		File fileJsonCS = new File("db/"+currentDbName+"/学生选课表.json");
+		
+		//获取行数组
+		ArrayList<ColumnRow> listRow = Util.fileToListByRow(fileTxtCS, fileJsonCS);
+		
+		System.out.println("行数："+listRow.size());
+		ArrayList<Integer> numRow = new ArrayList<Integer>();
+		//将查询到的行数存在临时list中
+		for (ColumnRow lis : listRow) {
+			if(lis.getCds().get(0).getData().equals(Tno)) {
+				numRow.add(lis.getCds().get(0).getRow());
+			}
+		}
+		//存储该教师教授的所有课程
+		ArrayList<String> tempCourse = new ArrayList<String>();
+		for (Integer integer : numRow) {
+			for (ColumnRow columnRow : listRow) {
+				if(columnRow.getRowNum()==integer.intValue()) {
+					tempCourse.add(columnRow.getCds().get(1).getData());
+				}
+			}
+		}
+		for (String string : tempCourse) {
+			System.out.println("教授课程："+string);
+		}
+		
+		//移除没有选这些课程的学生+并且移除所查询的那个学生
+		boolean jud = true;
+		boolean tempJud = true;
+		while(jud) {
+			for (int i = 0; i < listRow.size(); i++) {
+				if(Tno.equals(listRow.get(i).getCds().get(0).getData())){
+					listRow.remove(i);
+					tempJud=false;
+					break;
+				}
+				if(!tempCourse.contains(listRow.get(i).getCds().get(1).getData())){
+					listRow.remove(i);
+					tempJud=false;
+					break;
+				}
+			}
+			if(jud&&tempJud) {
+				jud=false;				
+			}
+			tempJud = true;
+		}
+		
+		//数据库有问题，还需要继续移除。。。。。
+		ArrayList<ColumnRow> row = new ArrayList<ColumnRow>();
+		for (int i = 0; i < listRow.size(); i++) {
+			if(i==0) {
+				row.add(listRow.get(i));
+			}else {
+				jud = true;
+				tempJud = true;
+				for (int j = 0; j < row.size(); j++) {
+					if(row.get(j).getCds().get(0).getData().equals(listRow.get(i).getCds().get(0).getData())) {
+						if(row.get(j).getCds().get(1).getData().equals(listRow.get(i).getCds().get(1).getData())) {
+							tempJud=false;
+							break;
+						}
+					}
+				}
+				if(jud&&tempJud) {
+					row.add(listRow.get(i));			
+				}
+			}
+		}
+		
+		//判断同时都选这些课程的学生
+		ArrayList<Integer> num = new ArrayList<Integer>();//存出现次数
+		
+		for (int i = 0; i < row.size(); i++) {
+			int tt=0;  
+			for(int j=0;j<row.size();j++) {
+				if(row.get(j).getCds().get(0).getData().equals(row.get(i).getCds().get(0).getData())){
+					tt++;
+				}
+			}
+			num.add(tt);
+		}
+		
+		//将出现次数与同学所有课程数目相同的学生学号存储起来
+		ArrayList<String> tempStus = new ArrayList<String>();//存学号
+		
+		for (int i = 0; i < num.size(); i++) {
+			jud=true;
+			if(num.get(i)==tempCourse.size()) {
+				if(!tempStus.isEmpty()) {
+					for (String string : tempStus) {
+						if(string.equals(row.get(i).getCds().get(0).getData())) {
+							jud=false;
+							break;
+						}
+					}
+				}	
+				if(jud) {
+					tempStus.add(row.get(i).getCds().get(0).getData());											
+				}
+			}
+		}
+		if(!tempStus.isEmpty()) {
+			String result ="";
+			for (int i = 0; i < tempStus.size(); i++) {
+				result += selectFlagFromTable("学生表", currentDbName, "学号,姓名,性别,所在系,手机号,寝室", "学号="+tempStus.get(i));
+			}
+			return result;
+		}
+		
+		return "no result"; 
+	}
+	
+	
+	
 	
 //	public static String dropDatabase3(){
 //		

@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import bean.ColumnData;
+import bean.ColumnRow;
 
 public class Util {
 	/**
@@ -48,7 +49,9 @@ public class Util {
 		
 		FileInputStream in= new FileInputStream(fileTxt);
 		ArrayList<ColumnData> list = new ArrayList<ColumnData>();
+		
 		int n=0,i=0,begin=0,row=1,column=0;
+		//读出每个数据的信息
 		while((n=in.read())>0) {
 			i++;
 			if(n==9){
@@ -75,17 +78,59 @@ public class Util {
 				column++;
 			}
 		}
-		
-		//输出
-//		int temp=0;
-//		for (ColumnData columnData : list) {
-//			if(temp%numColumn==0&&temp!=0){
-//				System.out.println();
-//			}
-//			temp++;
-//			System.out.print(columnData.getData());
-//		}
 		return list;
+	}
+	
+	public static ArrayList<ColumnRow> fileToListByRow(File fileTxt,File fileJson) throws IOException{
+		//读配置文件，获得列的个数
+		JSONTokener jt = new JSONTokener(new FileReader(fileJson));
+		JSONObject jo = (JSONObject)jt.nextValue();
+		int numColumn = jo.getJSONArray("column").length();
+		
+		FileInputStream in= new FileInputStream(fileTxt);
+		ArrayList<ColumnData> list = new ArrayList<ColumnData>();
+		
+		int n=0,i=0,begin=0,row=1,column=0;
+		//读出每个数据的信息
+		while((n=in.read())>0) {
+			i++;
+			if(n==9){
+				ColumnData data=new ColumnData();
+				data.setCloumn(jo.getJSONArray("column").getString(column%numColumn));
+				data.setData(Util.readRandom(fileTxt, begin, i-1));	
+				data.setBegin(begin);
+				data.setEnd(i);
+				data.setRow(row);
+				list.add(data);
+				begin=i;
+				column++;
+			}
+			if(n==10) {
+				ColumnData data=new ColumnData();
+				data.setCloumn(jo.getJSONArray("column").getString(column%numColumn));
+				data.setData(Util.readRandom(fileTxt, begin, i-2));	
+				data.setBegin(begin);
+				data.setEnd(i-2);
+				data.setRow(row);
+				list.add(data); 
+				begin = i;
+				row++;
+				column++;
+			}
+		}
+		//存入行中
+		ArrayList<ColumnRow> listRow = new ArrayList<ColumnRow>();
+		for(int j=1;j<=row;j++) {
+			ColumnRow colRow = new ColumnRow();
+			colRow.setRowNum(j);
+			for (ColumnData colData : list) {
+				if(colData.getRow()==j) {
+					colRow.getCds().add(colData);
+				}
+			}
+			listRow.add(colRow);
+		}
+		return listRow;
 	}
 	
 	/**

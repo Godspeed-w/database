@@ -22,10 +22,14 @@ public class Test_readRandom2 {
 		JSONTokener jt = new JSONTokener(new FileReader("db/school/学生表.json"));
 		JSONObject jo = (JSONObject)jt.nextValue();
 		int numColumn = jo.getJSONArray("column").length();
+		System.out.println("列长度"+numColumn);
+		
 		System.out.println(jo.getJSONArray("column").getString(2));
+		
 		File file=new File("db/school/学生表.txt");
 		FileInputStream in= new FileInputStream(file);
 		ArrayList<ColumnData> list = new ArrayList<ColumnData>();
+		
 		int n=0,i=0,begin=0,row=1,column=0;
 		while((n=in.read())>0) {
 			i++;
@@ -60,7 +64,7 @@ public class Test_readRandom2 {
 				System.out.println();
 			}
 			temp++;
-			System.out.print(columnData.getData()+" 行号: "+columnData.getRow()+" 列名："+columnData.getCloumn()+" ");
+			System.out.print(columnData.getBegin()+" "+columnData.getData()+columnData.getEnd()+"  ");
 		}
 		
 //		System.out.print("\n"+Util.readRandom(file, 0, 4));
