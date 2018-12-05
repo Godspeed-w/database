@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -453,7 +454,7 @@ public class Method {
 //			System.out.println("找到的学生："+string);
 //		}
 		if(!tempStus.isEmpty()) {
-			String result ="";
+			String result ="学号\t姓名\t性别\t所在系\t手机号\t寝室号\n";
 			for (int i = 0; i < tempStus.size(); i++) {
 				result += selectFlagFromTable("学生表", currentDbName, "学号,姓名,性别,所在系,手机号,寝室", "学号="+tempStus.get(i));
 			}
@@ -501,13 +502,11 @@ public class Method {
 		/*
 		 * 第二次查询，查询学生选课表
 		 */
-		
 		File fileTxtCS = new File("db/"+currentDbName+"/学生选课表.txt");
 		File fileJsonCS = new File("db/"+currentDbName+"/学生选课表.json");
 		
 		//获取行数组
 		ArrayList<ColumnRow> listRow = Util.fileToListByRow(fileTxtCS, fileJsonCS);
-		
 		System.out.println("行数："+listRow.size());
 		ArrayList<Integer> numRow = new ArrayList<Integer>();
 		//将查询到的行数存在临时list中
@@ -515,18 +514,6 @@ public class Method {
 			if(lis.getCds().get(0).getData().equals(Tno)) {
 				numRow.add(lis.getCds().get(0).getRow());
 			}
-		}
-		//存储该教师教授的所有课程
-		ArrayList<String> tempCourse = new ArrayList<String>();
-		for (Integer integer : numRow) {
-			for (ColumnRow columnRow : listRow) {
-				if(columnRow.getRowNum()==integer.intValue()) {
-					tempCourse.add(columnRow.getCds().get(1).getData());
-				}
-			}
-		}
-		for (String string : tempCourse) {
-			System.out.println("教授课程："+string);
 		}
 		
 		//移除没有选这些课程的学生+并且移除所查询的那个学生
@@ -553,6 +540,7 @@ public class Method {
 		
 		//数据库有问题，还需要继续移除。。。。。
 		ArrayList<ColumnRow> row = new ArrayList<ColumnRow>();
+		
 		for (int i = 0; i < listRow.size(); i++) {
 			if(i==0) {
 				row.add(listRow.get(i));
@@ -572,43 +560,37 @@ public class Method {
 				}
 			}
 		}
-		
-		//判断同时都选这些课程的学生
-		ArrayList<Integer> num = new ArrayList<Integer>();//存出现次数
-		
-		for (int i = 0; i < row.size(); i++) {
-			int tt=0;  
-			for(int j=0;j<row.size();j++) {
-				if(row.get(j).getCds().get(0).getData().equals(row.get(i).getCds().get(0).getData())){
-					tt++;
-				}
-			}
-			num.add(tt);
+		for (int i=0;i<row.size();i++) {
+			System.out.print(row.get(i).getCds().get(0).getData()+" ");
+			System.out.print(row.get(i).getCds().get(1).getData()+" ");
+			System.out.println(row.get(i).getCds().get(2).getData()+" ");
 		}
+		//计算老师课程的平均成绩
+		ArrayList<ColumnData> average = new ArrayList<ColumnData>();//存课程名和平均分
 		
-		//将出现次数与同学所有课程数目相同的学生学号存储起来
-		ArrayList<String> tempStus = new ArrayList<String>();//存学号
 		
-		for (int i = 0; i < num.size(); i++) {
-			jud=true;
-			if(num.get(i)==tempCourse.size()) {
-				if(!tempStus.isEmpty()) {
-					for (String string : tempStus) {
-						if(string.equals(row.get(i).getCds().get(0).getData())) {
-							jud=false;
-							break;
-						}
-					}
-				}	
-				if(jud) {
-					tempStus.add(row.get(i).getCds().get(0).getData());											
+		for (String string : tempCourse) {
+			ColumnData cd = new ColumnData();
+			cd.setCloumn(string);
+			average.add(cd);
+		}
+		for (int i=0;i<row.size();i++) {
+			for (ColumnData columnData : average) {
+				if(columnData.getCloumn().equals(row.get(i).getCds().get(1).getData())) {
+					int a=columnData.getRow()+1;
+					columnData.setRow(a);
+					int b=Integer.parseInt(row.get(i).getCds().get(2).getData());
+					int c=columnData.getData()==null?0:Integer.parseInt(columnData.getData());
+					columnData.setData(String.valueOf(b+c));
 				}
 			}
 		}
-		if(!tempStus.isEmpty()) {
-			String result ="";
-			for (int i = 0; i < tempStus.size(); i++) {
-				result += selectFlagFromTable("学生表", currentDbName, "学号,姓名,性别,所在系,手机号,寝室", "学号="+tempStus.get(i));
+		
+		if(!average.isEmpty()) {
+			String result ="课程号\t平均成绩\n";
+			for (ColumnData columnData : average) {
+				String r= columnData.getRow()==0?"0":String.valueOf(new DecimalFormat("0.000").format(Double.parseDouble(columnData.getData())/columnData.getRow()));
+				result += columnData.getCloumn()+"\t"+r+"\n";
 			}
 			return result;
 		}

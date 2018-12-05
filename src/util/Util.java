@@ -140,8 +140,8 @@ public class Util {
 	 */
 	public static void showArray(String showDetail,String[] strArray) {
 		System.out.println(showDetail);
-		for(String str : strArray) {
-			System.out.print(str);
+		for(int i=0;i<strArray.length;i++) {
+			System.out.println(strArray.toString());
 		}
 		System.out.println();
 	}

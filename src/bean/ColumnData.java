@@ -10,7 +10,7 @@ public class ColumnData {
 	//½áÊøÎ»ÖÃ
 	private int end;
 	//ĞĞºÅ
-	private int row;
+	private int row=0;
 	
 	public String getCloumn() {
 		return cloumn;
