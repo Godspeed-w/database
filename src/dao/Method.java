@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.Set;
 
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -292,7 +293,7 @@ public class Method {
 		//select 学号,姓名 from 学生表 where 学号=200902009;
 		//将查询到的数存在临时list中
 		for (ColumnData lis : list) {
-			if(lis.getCloumn().equals(arrayCondition[0])) {
+			if(lis.getColumn().equals(arrayCondition[0])) {
 				if(lis.getData().equals(arrayCondition[1])) {
 					numRow.add(lis.getRow());
 				}
@@ -304,7 +305,7 @@ public class Method {
 			int j=0;
 			for (int i = 0; i <numRow.size(); i++) {
 				for (ColumnData lisTemp : list) {
-					if(lisTemp.getRow()==numRow.get(i)&& Arrays.asList(arrayFlag).contains(lisTemp.getCloumn())) {
+					if(lisTemp.getRow()==numRow.get(i)&& Arrays.asList(arrayFlag).contains(lisTemp.getColumn())) {
 						j++;
 						if(j%arrayFlag.length==0) {
 							a +=lisTemp.getData()+"\n";							
@@ -571,12 +572,12 @@ public class Method {
 		
 		for (String string : tempCourse) {
 			ColumnData cd = new ColumnData();
-			cd.setCloumn(string);
+			cd.setColumn(string);
 			average.add(cd);
 		}
 		for (int i=0;i<row.size();i++) {
 			for (ColumnData columnData : average) {
-				if(columnData.getCloumn().equals(row.get(i).getCds().get(1).getData())) {
+				if(columnData.getColumn().equals(row.get(i).getCds().get(1).getData())) {
 					int a=columnData.getRow()+1;
 					columnData.setRow(a);
 					int b=Integer.parseInt(row.get(i).getCds().get(2).getData());
@@ -590,7 +591,7 @@ public class Method {
 			String result ="课程号\t平均成绩\n";
 			for (ColumnData columnData : average) {
 				String r= columnData.getRow()==0?"0":String.valueOf(new DecimalFormat("0.000").format(Double.parseDouble(columnData.getData())/columnData.getRow()));
-				result += columnData.getCloumn()+"\t"+r+"\n";
+				result += columnData.getColumn()+"\t"+r+"\n";
 			}
 			return result;
 		}
@@ -599,7 +600,83 @@ public class Method {
 	}
 	
 	
-	
+	/**
+	 * 4、统计每门课程的成绩信息（平均成绩，最高成绩，最低成绩，不及格人数）。
+	 * @return
+	 * @throws IOException
+	 */
+	public static String selectInformation(String currentDbName) throws IOException{
+		File fileTxtCS = new File("db/"+currentDbName+"/学生选课表.txt");
+		File fileJsonCS = new File("db/"+currentDbName+"/学生选课表.json");
+		
+		//获取行数组
+		ArrayList<ColumnRow> listRow = Util.fileToListByRow(fileTxtCS, fileJsonCS);
+		System.out.println("行数："+listRow.size());
+
+		ArrayList<String> tempCourse = new ArrayList<String>();
+		for (int i = 0; i < listRow.size(); i++) {
+			if(!tempCourse.contains(listRow.get(i).getCds().get(1).getData())) {
+				tempCourse.add(listRow.get(i).getCds().get(1).getData());
+			}	
+		}
+		System.out.println("一共有"+tempCourse.size()+"门课程");
+		int a=0;
+		for (String string : tempCourse) {
+			System.out.print(string+" ");
+			a++;
+			if(a%5==0)
+				System.out.println();
+		}
+		//存储课程表中所有的课程  
+		//模拟：column(课程名) row(平均分) begin(最低成绩) end(最高成绩) data(不及格人数) num1(累计的总成绩) num2(单个课程的人数)
+		ArrayList<ColumnData> CourseAndGrade = new ArrayList<ColumnData>();
+		for (int i = 0; i < tempCourse.size(); i++) {
+			ColumnData cd = new ColumnData();
+			cd.setColumn(tempCourse.get(i));
+			cd.setRow(0);
+			cd.setBegin(1000);
+			cd.setEnd(-1);
+			cd.setData("0");
+			CourseAndGrade.add(cd);
+		}
+		//计算数据，一次成型
+		//模拟：column(课程名) row(平均分) begin(最低成绩) end(最高成绩) data(不及格人数) num1(累计的总成绩) num2(单个课程的人数)
+		for (int i=0;i<listRow.size();i++) {
+			for (ColumnData columnData : CourseAndGrade) {
+				if(listRow.get(i).getCds().get(1).getData().equals(columnData.getColumn())) {
+					int temp=columnData.getNum1();
+					//存储单科累计总成绩
+					temp += Integer.parseInt(listRow.get(i).getCds().get(2).getData());
+					columnData.setNum1(temp);
+					//存储单科总人数
+					temp=columnData.getNum2()+1;
+					columnData.setNum2(temp);
+					//存储平均成绩
+					columnData.setRow(columnData.getNum1()/columnData.getNum2());
+					//存储最低成绩
+					if(Integer.parseInt(listRow.get(i).getCds().get(2).getData())<columnData.getBegin()) {
+						columnData.setBegin(Integer.parseInt(listRow.get(i).getCds().get(2).getData()));
+					}
+					//存储最高成绩
+					if(Integer.parseInt(listRow.get(i).getCds().get(2).getData())>columnData.getEnd()) {
+						columnData.setEnd(Integer.parseInt(listRow.get(i).getCds().get(2).getData()));
+					}
+					//存储不及格人数
+					if(Integer.parseInt(listRow.get(i).getCds().get(2).getData())<60) {
+						temp=Integer.parseInt(columnData.getData())+1;
+						columnData.setData(String.valueOf(temp));
+					}
+				}
+			}
+		}
+		System.out.println();
+		for (ColumnData columnData : CourseAndGrade) {
+			System.out.println("课程："+columnData.getColumn()+"\t平均成绩"+columnData.getRow()+"\t最低分"+columnData.getBegin()+
+					"\t  最高分"+columnData.getEnd()+"\t   不及格人数"+columnData.getData()+"\t总成绩："+columnData.getNum1()+"\t单科人数："+columnData.getNum2());
+		}
+		
+		return "no result";
+	}
 	
 //	public static String dropDatabase3(){
 //		

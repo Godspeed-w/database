@@ -31,6 +31,9 @@ public class Util {
         byte[]  buff=new byte[end-start];  
         //用于保存实际读取的字节数  
         int length=end-start;  
+        if(length==0) {
+        	return null;
+        }
         //循环读取  
         String result ="";
 //        System.out.println("长度："+length+"数组长度："+buff.length);
@@ -56,7 +59,7 @@ public class Util {
 			i++;
 			if(n==9){
 				ColumnData data=new ColumnData();
-				data.setCloumn(jo.getJSONArray("column").getString(column%numColumn));
+				data.setColumn(jo.getJSONArray("column").getString(column%numColumn));
 				data.setData(Util.readRandom(fileTxt, begin, i-1));	
 				data.setBegin(begin);
 				data.setEnd(i);
@@ -67,7 +70,7 @@ public class Util {
 			}
 			if(n==10) {
 				ColumnData data=new ColumnData();
-				data.setCloumn(jo.getJSONArray("column").getString(column%numColumn));
+				data.setColumn(jo.getJSONArray("column").getString(column%numColumn));
 				data.setData(Util.readRandom(fileTxt, begin, i-2));	
 				data.setBegin(begin);
 				data.setEnd(i-2);
@@ -96,7 +99,7 @@ public class Util {
 			i++;
 			if(n==9){
 				ColumnData data=new ColumnData();
-				data.setCloumn(jo.getJSONArray("column").getString(column%numColumn));
+				data.setColumn(jo.getJSONArray("column").getString(column%numColumn));
 				data.setData(Util.readRandom(fileTxt, begin, i-1));	
 				data.setBegin(begin);
 				data.setEnd(i);
@@ -107,7 +110,7 @@ public class Util {
 			}
 			if(n==10) {
 				ColumnData data=new ColumnData();
-				data.setCloumn(jo.getJSONArray("column").getString(column%numColumn));
+				data.setColumn(jo.getJSONArray("column").getString(column%numColumn));
 				data.setData(Util.readRandom(fileTxt, begin, i-2));	
 				data.setBegin(begin);
 				data.setEnd(i-2);
@@ -130,6 +133,10 @@ public class Util {
 			}
 			listRow.add(colRow);
 		}
+		//移除最后一个空行
+		listRow.remove(listRow.size()-1);
+		
+		System.out.println("Util中的list大小:"+listRow.size());
 		return listRow;
 	}
 	
