@@ -32,7 +32,7 @@ public class Util {
         //用于保存实际读取的字节数  
         int length=end-start;  
         if(length==0) {
-        	return null;
+        	return "#";
         }
         //循环读取  
         String result ="";
@@ -84,7 +84,9 @@ public class Util {
 		return list;
 	}
 	
-	public static ArrayList<ColumnRow> fileToListByRow(File fileTxt,File fileJson) throws IOException{
+	public static ArrayList<ColumnRow> fileToListByRow(String currentDbName, String tableName) throws IOException{
+		File fileTxt = new File("db/"+currentDbName+"/"+tableName+".txt");
+		File fileJson = new File("db/"+currentDbName+"/"+tableName+".json");
 		//读配置文件，获得列的个数
 		JSONTokener jt = new JSONTokener(new FileReader(fileJson));
 		JSONObject jo = (JSONObject)jt.nextValue();
@@ -136,7 +138,7 @@ public class Util {
 		//移除最后一个空行
 		listRow.remove(listRow.size()-1);
 		
-		System.out.println("Util中的list大小:"+listRow.size());
+//		System.out.println("Util中的list大小:"+listRow.size());
 		return listRow;
 	}
 	

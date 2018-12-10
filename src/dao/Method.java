@@ -330,11 +330,8 @@ public class Method {
 	 * @throws IOException
 	 */
 	public static String selectInfoByCourse(String tableName,String currentDbName,String stuNo) throws IOException{
-		File fileTxtCS = new File("db/"+currentDbName+"/学生选课表.txt");
-		File fileJsonCS = new File("db/"+currentDbName+"/学生选课表.json");
-		
-		//获取行数组
-		ArrayList<ColumnRow> listRow = Util.fileToListByRow(fileTxtCS, fileJsonCS);
+		//获取行列表
+		ArrayList<ColumnRow> listRow = Util.fileToListByRow(currentDbName,"学生选课表");
 		
 //		System.out.println("行数："+listRow.size());
 		ArrayList<Integer> numRow = new ArrayList<Integer>();
@@ -344,7 +341,7 @@ public class Method {
 				numRow.add(lis.getCds().get(0).getRow());
 			}
 		}
-		//存储该学生的所有课程
+		//该学生的所有课程
 		ArrayList<String> tempCourse = new ArrayList<String>();
 		for (Integer integer : numRow) {
 			for (ColumnRow columnRow : listRow) {
@@ -431,7 +428,7 @@ public class Method {
 //				System.out.print(integer+" ");
 //			}
 //		}
-		//将出现次数与同学所有课程数目相同的学生学号存储起来
+		//将出现次数与同学所有课程数目相同的学生学号起来
 		ArrayList<String> tempStus = new ArrayList<String>();//存学号
 		
 		for (int i = 0; i < num.size(); i++) {
@@ -473,11 +470,8 @@ public class Method {
 	 * @throws IOException
 	 */
 	public static String selectInfoByTno(String tableName,String currentDbName,String Tno) throws IOException{
-		File fileTxtTC = new File("db/"+currentDbName+"/教师授课表.txt");
-		File fileJsonTC = new File("db/"+currentDbName+"/教师授课表.json");
-		
-		//获取行数组
-		ArrayList<ColumnRow> listRowTC = Util.fileToListByRow(fileTxtTC, fileJsonTC);
+		//获取行列表
+		ArrayList<ColumnRow> listRowTC = Util.fileToListByRow(currentDbName,"教师授课表");
 		
 		System.out.println("行数："+listRowTC.size());
 		ArrayList<Integer> numRowTC = new ArrayList<Integer>();
@@ -487,7 +481,7 @@ public class Method {
 				numRowTC.add(lis.getCds().get(0).getRow());
 			}
 		}
-		//存储该教师教授的所有课程
+		//该教师教授的所有课程
 		ArrayList<String> tempCourse = new ArrayList<String>();
 		for (Integer integer : numRowTC) {
 			for (ColumnRow columnRow : listRowTC) {
@@ -503,11 +497,9 @@ public class Method {
 		/*
 		 * 第二次查询，查询学生选课表
 		 */
-		File fileTxtCS = new File("db/"+currentDbName+"/学生选课表.txt");
-		File fileJsonCS = new File("db/"+currentDbName+"/学生选课表.json");
 		
-		//获取行数组
-		ArrayList<ColumnRow> listRow = Util.fileToListByRow(fileTxtCS, fileJsonCS);
+		//获取行列表
+		ArrayList<ColumnRow> listRow = Util.fileToListByRow(currentDbName,"学生选课表");
 		System.out.println("行数："+listRow.size());
 		ArrayList<Integer> numRow = new ArrayList<Integer>();
 		//将查询到的行数存在临时list中
@@ -606,11 +598,8 @@ public class Method {
 	 * @throws IOException
 	 */
 	public static String selectInformation(String currentDbName) throws IOException{
-		File fileTxtCS = new File("db/"+currentDbName+"/学生选课表.txt");
-		File fileJsonCS = new File("db/"+currentDbName+"/学生选课表.json");
-		
-		//获取行数组
-		ArrayList<ColumnRow> listRow = Util.fileToListByRow(fileTxtCS, fileJsonCS);
+		//获取行列表
+		ArrayList<ColumnRow> listRow = Util.fileToListByRow(currentDbName,"学生选课表");
 		System.out.println("行数："+listRow.size());
 
 		ArrayList<String> tempCourse = new ArrayList<String>();
@@ -627,7 +616,7 @@ public class Method {
 			if(a%5==0)
 				System.out.println();
 		}
-		//存储课程表中所有的课程  
+		//课程表中所有的课程  
 		//模拟：column(课程名) row(平均分) begin(最低成绩) end(最高成绩) data(不及格人数) num1(累计的总成绩) num2(单个课程的人数)
 		ArrayList<ColumnData> CourseAndGrade = new ArrayList<ColumnData>();
 		for (int i = 0; i < tempCourse.size(); i++) {
@@ -639,29 +628,29 @@ public class Method {
 			cd.setData("0");
 			CourseAndGrade.add(cd);
 		}
-		//计算数据，一次成型
+		//计算数据
 		//模拟：column(课程名) row(平均分) begin(最低成绩) end(最高成绩) data(不及格人数) num1(累计的总成绩) num2(单个课程的人数)
 		for (int i=0;i<listRow.size();i++) {
 			for (ColumnData columnData : CourseAndGrade) {
 				if(listRow.get(i).getCds().get(1).getData().equals(columnData.getColumn())) {
 					int temp=columnData.getNum1();
-					//存储单科累计总成绩
+					//单科累计总成绩
 					temp += Integer.parseInt(listRow.get(i).getCds().get(2).getData());
 					columnData.setNum1(temp);
-					//存储单科总人数
+					//单科总人数
 					temp=columnData.getNum2()+1;
 					columnData.setNum2(temp);
-					//存储平均成绩
+					//平均成绩
 					columnData.setRow(columnData.getNum1()/columnData.getNum2());
-					//存储最低成绩
+					//最低成绩
 					if(Integer.parseInt(listRow.get(i).getCds().get(2).getData())<columnData.getBegin()) {
 						columnData.setBegin(Integer.parseInt(listRow.get(i).getCds().get(2).getData()));
 					}
-					//存储最高成绩
+					//最高成绩
 					if(Integer.parseInt(listRow.get(i).getCds().get(2).getData())>columnData.getEnd()) {
 						columnData.setEnd(Integer.parseInt(listRow.get(i).getCds().get(2).getData()));
 					}
-					//存储不及格人数
+					//不及格人数
 					if(Integer.parseInt(listRow.get(i).getCds().get(2).getData())<60) {
 						temp=Integer.parseInt(columnData.getData())+1;
 						columnData.setData(String.valueOf(temp));
@@ -677,7 +666,214 @@ public class Method {
 		
 		return "no result";
 	}
+	/**
+	 * 5、查询每个寝室里住的同学的平均成绩信息，并按平均成绩从高到低排列。
+	 * @return
+	 * @throws IOException 
+	 */
+	public static String selectAverageByDormitory(String currentDbName) throws IOException{
+		//获取寝室信息行列表
+		ArrayList<ColumnRow> listDor = Util.fileToListByRow(currentDbName,"寝室信息表");
+		System.out.println("寝室表行数："+listDor.size());
+		//生成寝室数据
+		//模拟：rowName(寝室号) num1(平均分) num2(寝室累计的总成绩) 
+		ArrayList<String> tempString = new ArrayList<String>();
+		ArrayList<ColumnRow> tempDor = new ArrayList<ColumnRow>();
+		for (int i = 0; i < listDor.size(); i++) {
+			if(!tempString.contains(listDor.get(i).getCds().get(0).getData())) {
+				tempString.add(listDor.get(i).getCds().get(0).getData());
+				ColumnRow cr=new ColumnRow();
+				cr.setRowName(listDor.get(i).getCds().get(0).getData());
+				tempDor.add(cr);
+			}	
+		}
+		System.out.println("一共有"+tempDor.size()+"个寝室");
+		int a=0;
+		for (ColumnRow columnRow : tempDor) {
+			System.out.print(columnRow.getRowName()+" ");
+			a++;
+			if(a%5==0)
+				System.out.println();
+		}
+		System.out.println();
+		
+		//获取学生行列表,将学生安排在各自宿舍中
+		ArrayList<ColumnRow> listSt = Util.fileToListByRow(currentDbName,"学生表");
+		System.out.println("学生表行数："+listSt.size());
+		for (int i=0;i<listSt.size();i++) {
+			for (ColumnRow columnRow1 : tempDor) {
+				if(listSt.get(i).getCds().get(5).getData().equals(columnRow1.getRowName())) {
+					columnRow1.getCds().add(listSt.get(i).getCds().get(0));
+				}
+			}
+		}
+		for (ColumnRow columnRow : tempDor) {
+			System.out.println("寝室号："+columnRow.getRowName()+" 寝室人数："+columnRow.getCds().size());
+		}
+		
+		//获取学生选课行列表
+		ArrayList<ColumnRow> listRow = Util.fileToListByRow(currentDbName,"学生选课表");
+		System.out.println("学生选课表行数："+listRow.size());
+		
+		//计算数据
+		//模拟：rowName(寝室号) num1(平均分) num2(寝室累计的总成绩) num3(寝室学生选的全部课程数) columnRow.getCds().size()(寝室中人数)
+		for (int i=0;i<listRow.size();i++) {
+			for (ColumnRow columnRow : tempDor) {
+				for(ColumnData columnData : columnRow.getCds()) {
+					if(listRow.get(i).getCds().get(0).getData().equals(columnData.getData())) {
+						//累加总成绩
+						int temp=columnRow.getNum2()+Integer.parseInt(listRow.get(i).getCds().get(2).getData());
+						columnRow.setNum2(temp); 
+						temp=columnRow.getNum3()+1;
+						columnRow.setNum3(temp);
+						//计算平均成绩
+						if(columnRow.getCds().size()!=0) {
+							columnRow.setNum1(columnRow.getNum2()/columnRow.getNum3());
+						}
+					}
+				}
+			}
+		}
+		System.out.println("***********************");
+		for (ColumnRow columnRow : tempDor) {
+			System.out.println("寝室名："+columnRow.getRowName()+" 平均成绩"+columnRow.getNum1());
+		}
+		
+		return "no result";
+	}
 	
+	/**
+	 * 6、找出每个学生超过他选修课程平均成绩的课程号。
+	 * @return
+	 * @throws IOException 
+	 */
+	public static String selectNo6(String currentDbName) throws IOException{
+		//获取学生选课行列表
+		ArrayList<ColumnRow> listRow = Util.fileToListByRow(currentDbName,"学生选课表");
+		System.out.println("行数："+listRow.size());
+
+		ArrayList<String> tempCourse = new ArrayList<String>();
+		for (int i = 0; i < listRow.size(); i++) {
+			if(!tempCourse.contains(listRow.get(i).getCds().get(1).getData())) {
+				tempCourse.add(listRow.get(i).getCds().get(1).getData());
+			}	
+		}
+		System.out.println("一共有"+tempCourse.size()+"门课程");
+		int a=0;
+		for (String string : tempCourse) {
+			System.out.print(string+" ");
+			a++;
+			if(a%5==0)
+				System.out.println();
+		}
+		//课程表中所有的课程  
+		//模拟：column(课程名) row(平均分) num1(累计的总成绩) num2(单个课程的人数)
+		ArrayList<ColumnData> CourseAndGrade = new ArrayList<ColumnData>();
+		for (int i = 0; i < tempCourse.size(); i++) {
+			ColumnData cd = new ColumnData();
+			cd.setColumn(tempCourse.get(i));
+			cd.setRow(0);
+			cd.setNum1(0);
+			cd.setNum2(0);
+			CourseAndGrade.add(cd);
+		}
+		//计算数据
+		//模拟：column(课程名) row(平均分) num1(累计的总成绩) num2(单个课程的人数)
+		for (int i=0;i<listRow.size();i++) {
+			for (ColumnData columnData : CourseAndGrade) {
+				if(listRow.get(i).getCds().get(1).getData().equals(columnData.getColumn())) {
+					int temp=columnData.getNum1();
+					//单科累计总成绩
+					temp += Integer.parseInt(listRow.get(i).getCds().get(2).getData());
+					columnData.setNum1(temp);
+					//单科总人数
+					temp=columnData.getNum2()+1;
+					columnData.setNum2(temp);
+					//平均成绩
+					columnData.setRow(columnData.getNum1()/columnData.getNum2());
+				}
+			}
+		}
+		System.out.println();
+		for (ColumnData columnData : CourseAndGrade) {
+			System.out.println("课程："+columnData.getColumn()+"\t平均成绩"+columnData.getRow());
+		}
+		//获取学生信息
+		ArrayList<ColumnRow> listStu = Util.fileToListByRow(currentDbName,"学生表");
+		System.out.println("学生表行数："+listStu.size());
+		ArrayList<ColumnRow> tempStu = new ArrayList<ColumnRow>();
+		for (ColumnRow columnRow : listStu) {
+			if(tempStu.size()==0) {
+				ColumnRow cr =new ColumnRow();
+				cr.setRowName(columnRow.getCds().get(0).getData());//设置学生学号
+				tempStu.add(cr);
+			}else {
+				boolean had1=true,had2=false;
+				for (ColumnRow columnRow2 : tempStu) {
+					if(columnRow2.getRowName().equals(columnRow.getCds().get(0).getData())) {
+						had2=true;
+					}
+				}
+				if(!(had1&&had2)) {
+					ColumnRow cr =new ColumnRow();
+					cr.setRowName(columnRow.getCds().get(0).getData());
+					tempStu.add(cr);
+				}
+			}
+		}
+		System.out.println("临时学生表行数："+tempStu.size());
+		
+		//将选课信息加到临时学生表中
+		for (ColumnRow columnRow : listRow) {
+			for (ColumnRow columnRow2 : tempStu) {
+				if(columnRow.getCds().get(0).getData().equals(columnRow2.getRowName())) {
+					if(columnRow2.getCds().size()==0) {
+						ColumnData cd =new ColumnData();
+						cd.setData(columnRow.getCds().get(1).getData());//设置选修的课程号
+						cd.setNum1(Integer.parseInt(columnRow.getCds().get(2).getData()));//设置这门课程的成绩
+						columnRow2.getCds().add(cd);
+					}else {
+						boolean had1=true,had2=false;
+						for (ColumnData columnData : columnRow2.getCds()) {
+							if(columnData.getData().equals(columnRow.getCds().get(1).getData())) {
+								had2=true;
+							}
+						}
+						if(!(had1&&had2)) {
+							ColumnData cd =new ColumnData();
+							cd.setData(columnRow.getCds().get(1).getData());//设置选修的课程号
+							cd.setNum1(Integer.parseInt(columnRow.getCds().get(2).getData()));//设置这门课程的成绩
+							columnRow2.getCds().add(cd);
+						}
+					}
+				}
+			}
+		}
+		for (ColumnRow columnRow : tempStu) {
+			System.out.println("学生："+columnRow.getRowName()+" 门数： "+columnRow.getCds().size());
+			for (ColumnData columnData : columnRow.getCds()) {
+				System.out.print("   "+columnData.getData()+" "+columnData.getNum1());
+			}
+			System.out.println();
+		}
+		//输出每个学生比平均成绩高的课程
+		System.out.println("###############################################################\n"
+				+ "###############################################################");
+		for (ColumnRow columnRow : tempStu) {
+			System.out.print("学生："+columnRow.getRowName()+" 课程：");
+			for (ColumnData columnData : columnRow.getCds()) {
+				for (ColumnData columnData2 : CourseAndGrade) {
+					if(columnData.getData().equals(columnData2.getColumn())) {
+						if(columnData.getNum1()>columnData2.getRow()) {
+							System.out.print("\t"+columnData.getData());
+						}
+					}
+				}
+			}
+			System.out.println();
+		}
+		return "no result";
+	}
 //	public static String dropDatabase3(){
 //		
 //		return "OK";

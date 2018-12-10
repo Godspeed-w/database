@@ -20,14 +20,14 @@ public class Test_readRandom2 {
 	public static void main(String[] args) throws IOException {
 		
 		//读配置文件，获得列的个数
-		JSONTokener jt = new JSONTokener(new FileReader("db/school/学生选课表.json"));
+		JSONTokener jt = new JSONTokener(new FileReader("db/school/学生表.json"));
 		JSONObject jo = (JSONObject)jt.nextValue();
 		int numColumn = jo.getJSONArray("column").length();
 		System.out.println("列长度"+numColumn);
 		
 		System.out.println(jo.getJSONArray("column").getString(2));
 		
-		File file=new File("db/school/学生选课表.txt");
+		File file=new File("db/school/学生表.txt");
 		FileInputStream in= new FileInputStream(file);
 		ArrayList<ColumnData> list = new ArrayList<ColumnData>();
 		
@@ -36,7 +36,7 @@ public class Test_readRandom2 {
 			i++;
 			if(n==9){
 				ColumnData data=new ColumnData();
-				data.setCloumn(jo.getJSONArray("column").getString(column%numColumn));
+				data.setColumn(jo.getJSONArray("column").getString(column%numColumn));
 				data.setData(Util.readRandom(file, begin, i-1));	
 				data.setBegin(begin);
 				data.setEnd(i);
@@ -47,7 +47,7 @@ public class Test_readRandom2 {
 			}
 			if(n==10) {
 				ColumnData data=new ColumnData();
-				data.setCloumn(jo.getJSONArray("column").getString(column%numColumn));
+				data.setColumn(jo.getJSONArray("column").getString(column%numColumn));
 				data.setData(Util.readRandom(file, begin, i-2));	
 				data.setBegin(begin);
 				data.setEnd(i-2);
@@ -67,7 +67,8 @@ public class Test_readRandom2 {
 				System.out.println("第"+t+"行");
 			}
 			temp++;
-			System.out.print(columnData.getBegin()+" "+columnData.getData()+" "+columnData.getEnd()+"  ");
+			System.out.print(" "+columnData.getData());
+//			System.out.print(columnData.getBegin()+" "+columnData.getData()+" "+columnData.getEnd()+"  ");
 		}
 		ArrayList<ColumnRow> listRow = new ArrayList<ColumnRow>();
 		for(int j=1;j<=row;j++) {
