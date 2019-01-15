@@ -1,0 +1,11 @@
+{
+	"column": [
+		"depno",
+		"depname",
+		"deptel",
+		"depmaster"
+	],
+	"foreignKey": "",
+	"tableName": "Ïµ±í",
+	"primaryKey": "depno"
+}

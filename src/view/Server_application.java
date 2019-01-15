@@ -15,7 +15,6 @@ import javax.swing.JTextArea;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 
-import bean.SqlInformation;
 
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
@@ -166,7 +165,6 @@ public class Server_application extends JFrame {
 			this.socket = socket;
 		}
 		public void run() {
-			SqlInformation sqlInfo = new SqlInformation();
 			while(true){
 				try {
 					
@@ -186,10 +184,10 @@ public class Server_application extends JFrame {
 					textArea.append("receive:\n"+sql+"\n");
 					
 					long startTime = System.nanoTime();
-					String response = CheckSql.doSql(sql,sqlInfo);
+					String response = CheckSql.doSql(sql);
 					long endTime = System.nanoTime();
 					
-					send.writeUTF(response+" ("+((endTime-startTime)/100000.0)+" ms)");
+					send.writeUTF(response+" \n("+((endTime-startTime)/1000000.0)+" ms)");
 					
 				} catch (IOException e) {
 					e.printStackTrace();

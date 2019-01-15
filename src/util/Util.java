@@ -1,189 +1,268 @@
 package util;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.LineNumberInputStream;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
-import org.json.JSONTokener;
 
-import bean.ColumnData;
-import bean.ColumnRow;
+import bean.Ram;
 
 public class Util {
 	/**
-	 * 随机读取文件
-	 * @param file
-	 * @param start
-	 * @param end
+	 * 模拟释放内存
+	 */
+	public static void init() {
+		for (int i = 0; i < Ram.N; i++) {
+			Ram.a[i] = 0;
+		}
+	}
+
+	/**
+	 * 输出文件信息
+	 * 
+	 * @param tablename
+	 * @throws IOException
+	 */
+	public static String out(String tablename) throws IOException {
+		Util.init();
+		String response = "";
+		RandomAccessFile raf = new RandomAccessFile("db/" + tablename + ".txt", "r");
+		boolean flag = true;
+		int j = 0, num1 = 0, num2 = 0;
+		while (flag) {
+			if (raf.read(Ram.a) != -1) {
+				for (int i = 0; i < Ram.a.length; i++) {
+					if (Ram.a[i] == '\n') {
+						j = i;
+					}
+				}
+				response += new String(Ram.a, 0, j);
+				System.out.print(new String(Ram.a, 0, j));
+				for (int i = 0; i < Ram.a.length; i++) {
+					if (Ram.a[i] == 0) {
+						flag = false;
+						break;
+					}
+				}
+				raf.seek(num1 + j);
+				num1 = num1 + j;
+				Util.init();
+			}
+		}
+		raf.close();
+		return response;
+	}
+
+	/**
+	 * 向文件追加数据
+	 * 
+	 * @param fileName
+	 * @param bt
+	 * @param off
+	 * @param len
+	 * @throws IOException
+	 */
+	public static void fileAppend(String fileName, byte[] bt, int off, int len) throws IOException {
+//		System.out.println("off:"+off+" len:"+len);
+//		System.out.println("收到的句子##"+new String(bt));
+		File file = new File("db/" + fileName + ".txt");
+		if (!file.exists()) {
+			file.createNewFile();
+		}
+		RandomAccessFile raf = new RandomAccessFile(file, "rw");
+		raf.seek(raf.length());
+		if (off == -1 && len == -1) {
+			raf.write(bt);
+		} else {
+			raf.write(bt, off, len);
+		}
+		raf.close();
+	}
+
+	/**
+	 * 获取数据表序号 ## 从0开始计数
+	 * 
+	 * @param tableName
+	 * @param condition
 	 * @return
 	 * @throws IOException
 	 */
-	public static String readRandom(File file,int start,int end) throws IOException {
-		RandomAccessFile raf=new RandomAccessFile(file, "r");
-        raf.seek(start);//移动文件指针位置  
-        byte[]  buff=new byte[end-start];  
-        //用于保存实际读取的字节数  
-        int length=end-start;  
-        if(length==0) {
-        	return "#";
-        }
-        //循环读取  
-        String result ="";
-//        System.out.println("长度："+length+"数组长度："+buff.length);
-        raf.read(buff);
-        result +=new String(buff);
-//        System.out.println("读到的数据是："+new String(buff));
-        raf.close();
-		return result;
-	}
-	
-	public static ArrayList<ColumnData> fileToList(File fileTxt,File fileJson) throws IOException{
-		//读配置文件，获得列的个数
-		JSONTokener jt = new JSONTokener(new FileReader(fileJson));
-		JSONObject jo = (JSONObject)jt.nextValue();
-		int numColumn = jo.getJSONArray("column").length();
-		
-		FileInputStream in= new FileInputStream(fileTxt);
-		ArrayList<ColumnData> list = new ArrayList<ColumnData>();
-		
-		int n=0,i=0,begin=0,row=1,column=0;
-		//读出每个数据的信息
-		while((n=in.read())>0) {
-			i++;
-			if(n==9){
-				ColumnData data=new ColumnData();
-				data.setColumn(jo.getJSONArray("column").getString(column%numColumn));
-				data.setData(Util.readRandom(fileTxt, begin, i-1));	
-				data.setBegin(begin);
-				data.setEnd(i);
-				data.setRow(row);
-				list.add(data);
-				begin=i;
-				column++;
-			}
-			if(n==10) {
-				ColumnData data=new ColumnData();
-				data.setColumn(jo.getJSONArray("column").getString(column%numColumn));
-				data.setData(Util.readRandom(fileTxt, begin, i-2));	
-				data.setBegin(begin);
-				data.setEnd(i-2);
-				data.setRow(row);
-				list.add(data); 
-				begin = i;
-				row++;
-				column++;
+	public static int jsonArrayLocation(String tableName, String condition) throws IOException {
+		FileReader fr = new FileReader("db/" + tableName + ".json");
+		BufferedReader br = new BufferedReader(fr);
+		String str = br.readLine();
+		String str1 = "";
+		while (str != null) {
+			str1 += str;
+			str = br.readLine();
+		}
+		br.close();
+		JSONObject jo = new JSONObject(str1);
+		JSONArray jo2 = jo.getJSONArray("column");
+		for (int i = 0; i < jo2.length(); i++) {
+			if (jo2.get(i).toString().equals(condition)) {
+				return i;
 			}
 		}
-		return list;
+		return -666;
 	}
-	
-	public static ArrayList<ColumnRow> fileToListByRow(String currentDbName, String tableName) throws IOException{
-		File fileTxt = new File("db/"+currentDbName+"/"+tableName+".txt");
-		File fileJson = new File("db/"+currentDbName+"/"+tableName+".json");
-		//读配置文件，获得列的个数
-		JSONTokener jt = new JSONTokener(new FileReader(fileJson));
-		JSONObject jo = (JSONObject)jt.nextValue();
-		int numColumn = jo.getJSONArray("column").length();
-		
-		FileInputStream in= new FileInputStream(fileTxt);
-		ArrayList<ColumnData> list = new ArrayList<ColumnData>();
-		
-		int n=0,i=0,begin=0,row=1,column=0;
-		//读出每个数据的信息
-		while((n=in.read())>0) {
-			i++;
-			if(n==9){
-				ColumnData data=new ColumnData();
-				data.setColumn(jo.getJSONArray("column").getString(column%numColumn));
-				data.setData(Util.readRandom(fileTxt, begin, i-1));	
-				data.setBegin(begin);
-				data.setEnd(i);
-				data.setRow(row);
-				list.add(data);
-				begin=i;
-				column++;
-			}
-			if(n==10) {
-				ColumnData data=new ColumnData();
-				data.setColumn(jo.getJSONArray("column").getString(column%numColumn));
-				data.setData(Util.readRandom(fileTxt, begin, i-2));	
-				data.setBegin(begin);
-				data.setEnd(i-2);
-				data.setRow(row);
-				list.add(data); 
-				begin = i;
-				row++;
-				column++;
-			}
+
+	/**
+	 * 获取数据表中字段总数
+	 * 
+	 * @param tableName
+	 * @param condition
+	 * @return
+	 * @throws IOException
+	 */
+	public static int jsonArraySize(String tableName) throws IOException {
+		FileReader fr = new FileReader("db/" + tableName + ".json");
+		BufferedReader br = new BufferedReader(fr);
+		String str = br.readLine();
+		String str1 = "";
+		while (str != null) {
+			str1 += str;
+			str = br.readLine();
 		}
-		//存入行中
-		ArrayList<ColumnRow> listRow = new ArrayList<ColumnRow>();
-		for(int j=1;j<=row;j++) {
-			ColumnRow colRow = new ColumnRow();
-			colRow.setRowNum(j);
-			for (ColumnData colData : list) {
-				if(colData.getRow()==j) {
-					colRow.getCds().add(colData);
+		br.close();
+		JSONObject jo = new JSONObject(str1);
+		JSONArray jo2 = jo.getJSONArray("column");
+		return jo2.length();
+	}
+
+	/**
+	 * 根据条件去查询 select sname,ssex,depno,dorno from 学生表 where sno=200906093;
+	 * 
+	 * @param args
+	 * @throws IOException
+	 */
+//	public static ArrayList<String> selectByFlag(String flags, String tableName, String condition) throws IOException {
+//		Util.init();
+//		boolean flag = true;
+//		int i = 0, j = 0, num1 = 0, num2 = 0,location=0;
+//		String line=null;
+//		ArrayList<String> list = new ArrayList<String>();
+//		RandomAccessFile raf = new RandomAccessFile("db/" + tableName + ".txt", "r");
+//		while (flag) {
+//			if (raf.read(Ram.a) != -1) {
+//				num2 = 0;//记录400字节中每行开始位置
+//				for (i = 0; i < Ram.a.length; i++) {//i迭代循环内存大小
+//					if (Ram.a[i] == '\n') {
+//						j = i;//j用来记录400字节的最大行末尾指针位置
+//						line=new String(Ram.a, num2, i - 1 - num2);
+//						if(condition.equals("all")) {//无条件查询
+//							for (int k = 0; k < flags.split(",").length; k++) {
+//								location =Util.jsonArrayLocation(tableName, flags.split(",")[k]);//定位json中字段位置
+//								if(location<line.split("\t").length) {//防止空数据
+//									list.add(line.split("\t")[location]);
+//								}
+//							}
+//						}else {//有条件查询
+//							location=Util.jsonArrayLocation(tableName,condition.split("=")[0]);
+//							if(location<line.split("\t").length) {
+//								if (line.split("\t")[location].equals(condition.split("=")[1])) {
+//									for (int k = 0; k < flags.split(",").length; k++) {
+//										list.add(line.split("\t")[Util.jsonArrayLocation(tableName, flags.split(",")[k])]);
+//									}
+//								}
+//							}
+//						}
+//						num2 = i + 1;
+//					}
+//				}
+//				for (i = 0; i < Ram.a.length; i++) {
+//					if (Ram.a[i] == 0) {
+//						flag = false;
+//						break;
+//					}
+//				}
+//				raf.seek(num1 + j + 1);
+//				num1 = num1 + j + 1;//num1表示当前文件指针位置
+//				Util.init();
+//			}
+//		}
+//		raf.close();
+//		return list;
+//	}
+
+	/**
+	 * 弃用上面的方法，使用最新方法
+	 */
+	public static ArrayList<String> selectByFlag(String flags, String tableName, String condition) throws IOException {
+		synchronized (Ram.a) {
+			Util.init();
+			boolean flag = true;
+			int i = 0, j = 0, num1 = 0, num2 = 0, location = 0;
+			ArrayList<String> list = new ArrayList<String>();
+			RandomAccessFile raf = new RandomAccessFile("db/" + tableName + ".txt", "r");
+			location = Util.jsonArrayLocation(tableName, condition.split("=")[0]);
+			while (flag) {
+				if (raf.read(Ram.a) != -1) {
+					num2 = 0;// 记录400字节中每行开始位置
+					for (i = 0; i < Ram.a.length; i++) {// i迭代循环内存大小
+						if (Ram.a[i] == '\n') {
+//						line=new String(Ram.a, num2, i - 1 - num2);
+//						System.out.println(line);
+
+//						String[] temp = new String[jsonArraySize(tableName)];
+							String temp = "";
+							int times = 0;
+							int begin = num2;
+							String line = "";
+							for (int k = num2; k <= i - 1; k++) {
+								if (Ram.a[k] == 9 || Ram.a[k] == 10 || k == i - 1) {
+									if (k - begin == 0) {
+										temp = "null";
+									} else {
+										temp = new String(Ram.a, begin, k - begin);
+									}
+//								System.out.println("#"+temp[times]+"#");
+									line += temp + "\t";
+									begin = k + 1;
+									times++;
+								}
+							}
+							if (condition.equals("all")) {
+								for (int k = 0; k < flags.split(",").length; k++) {
+									list.add(line.split("\t")[Util.jsonArrayLocation(tableName, flags.split(",")[k])]);
+								}
+							} else {
+								location = jsonArrayLocation(tableName, condition.split("=")[0]);
+//							System.out.println("location"+location+" "+line.split("\t")[location]+" "+condition.split("=")[1]);
+//							System.out.println(line.split("\t")[location].equals(condition.split("=")[1]));
+								if (line.split("\t")[location].equals(condition.split("=")[1])) {
+									
+									for (int k = 0; k < flags.split(",").length; k++) {
+										list.add(line.split("\t")[Util.jsonArrayLocation(tableName,
+												flags.split(",")[k])]);
+									}
+								}
+							}
+							num2 = i + 1;
+							j = num2;// j用来记录读取字节的最大行末尾指针位置
+						}
+					}
+					// 判断是否文件读取结束
+					for (i = 0; i < Ram.a.length; i++) {
+						if (Ram.a[i] == 0) {
+							flag = false;
+							break;
+						}
+					}
+					raf.seek(num1 + j);
+					num1 = num1 + j;// num1表示当前文件指针位置
+					Util.init();
 				}
 			}
-			listRow.add(colRow);
+			raf.close();
+			return list;
+
 		}
-		//移除最后一个空行
-		listRow.remove(listRow.size()-1);
-		
-//		System.out.println("Util中的list大小:"+listRow.size());
-		return listRow;
 	}
-	
-	/**
-	 * 显示数组数据
-	 * @param showDetail
-	 * @param strArray
-	 */
-	public static void showArray(String showDetail,String[] strArray) {
-		System.out.println(showDetail);
-		for(int i=0;i<strArray.length;i++) {
-			System.out.println(strArray.toString());
-		}
-		System.out.println();
-	}
-	/**
-	 * 去掉成对的单引号与括号
-	 * @param sentence
-	 * @return
-	 */
-	public static String ridQuotes(String sentence) {
-		if(sentence.startsWith("(") && sentence.endsWith(")")) {
-			sentence = sentence.substring(1,sentence.length()-1).trim(); 
-		}
-		if(sentence.startsWith("'") && sentence.endsWith("'")) {
-			sentence = sentence.substring(1,sentence.length()-1).trim();
-		}
-		return sentence;
-	}
-	/**
-	 * 写新文件内容
-	 * @param sentence
-	 * @param file
-	 * @return
-	 * @throws IOException
-	 */
-	public static String writeFile(String sentence , File file) throws IOException {
-		if(file.exists()) {
-			FileWriter fw = new FileWriter(file);	
-			fw.write(sentence);
-		}else {
-			return "this table is not exist";
-		}
-		return "OK";
-	}
-	//追加文件内容
-	
 }

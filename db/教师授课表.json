@@ -1,0 +1,4 @@
+{
+	"tableName":"教师授课表",
+	"column":["tno","cno"]
+}

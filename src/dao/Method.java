@@ -1,881 +1,783 @@
 package dao;
 
-import java.awt.List;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
-import java.util.Set;
 
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-import bean.ColumnConfig;
-import bean.ColumnData;
-import bean.ColumnRow;
-import bean.TableConfig;
+import bean.Ram;
 import util.Util;
-
 
 public class Method {
 	/**
-	 * 创建数据库
-	 * @param databaseName
-	 * @return String
-	 */
-	public static String createDataBase(String databaseName) {
-		File fi = new File("db/"+databaseName);
-		if(fi.exists()) {
-			return "the database already exists";
-		}
-		if(fi.mkdirs()) {
-			return "create database successfully";	
-		}
-		return "create database failed";
-	}
-	
-	/**
-	 * 创建数据表
-	 * @param tableSql
-	 * @return String
-	 */
-	public static String createTable(String tableSql,String currentDbName) throws IOException{
-		//生成表结构对象
-		TableConfig tableconfig = new TableConfig();			
-		
-		String tableName = tableSql.split(" ")[2];
-		tableconfig.setTableName(tableName);
-		
-		int startColumns = tableSql.indexOf("(");
-		int endColumns = tableSql.lastIndexOf(")");
-		String sql_tempColumns = tableSql.substring(startColumns+1, endColumns).trim();
-	
-		String[] sql_column = sql_tempColumns.split(",");
-		
-		for(String str : sql_column) {
-			String[] strTemp = str.split(" ");
-			
-			//处理有主键的情况
-			if(strTemp[0].equals("primary")) {
-				if(strTemp[1].equals("key")) {
-					String primaryKey = Util.ridQuotes(strTemp[2]);
-					tableconfig.setPrimaryKey(primaryKey);
-				}else {
-					return "create table syntax error";
-				}
-			}else {
-				//无主键的列
-				String col_name = Util.ridQuotes(strTemp[0]);
-				String type = strTemp[1];
-				boolean isNotNull = str.contains("not null");
-				
-				int size = 0;
-				if(type.equals("int")) {
-					size = 4;
-				}else if(type.contains("char")) {
-					int start = type.indexOf("(");
-					int end = type.lastIndexOf(")");
-					size = Integer.parseInt(type.substring(start+1, end));
-				}else {
-					return "create table syntax error";
-				}
-				
-				ColumnConfig cf = new ColumnConfig();
-				cf.setCol_name(col_name);
-				cf.setType(type);
-				cf.setSize(size);
-				cf.setNull(isNotNull);
-				tableconfig.getCfs().add(cf);
-			}
-			
-		}
-		//开始创建JSON配置文件与表
-		File fl = new File("db/"+currentDbName+"/"+tableconfig.getTableName()+".txt");
-		File flConfig = new File("db/"+currentDbName+"/"+tableconfig.getTableName()+".json");
-		if(fl.exists() && flConfig.exists()) {
-			return "this table alrady exist";
-		}else {
-			fl.createNewFile();
-			flConfig.createNewFile();
-			
-			String tempColumn = "";
-			int num = 0;
-			for(ColumnConfig tempCf : tableconfig.getCfs()) {
-				num++;
-				if(num < tableconfig.getCfs().size()) {
-					tempColumn = tempCf.strJson()+",";					
-				}else {
-					tempColumn = tempCf.strJson();	
-				}
-			}
-			
-			String tbInformation = "";
-			
-			return Util.writeFile(tbInformation, flConfig);
-					
-		}
-	}
-	
-	
-	/**
-	 * 显示所有数据库
-	 * @return String
-	 */
-	public static String showDatabases(){
-		
-		File fi = new File("db/");
-		String listFiles = "";
-		for(File file : fi.listFiles()){
-			if(file.isDirectory()){
-				listFiles += file.getName()+"\n";
-			}
-		}
-		return listFiles;
-	}
-	
-	/**
-	 * 显示数据库中的表
-	 * @param dbName
-	 * @return String
-	 */
-	public static String showTables(String dbName){
-		if(dbName.equals("/")){
-			return "please choose database";
-		}
-		File fi = new File("db/"+dbName);
-		String returnSentence = "";
-		for(File file : fi.listFiles()){
-			if(file.getName().endsWith(".txt")){
-				returnSentence += file.getName().substring(0, file.getName().lastIndexOf("."))+"\n";
-			}
-		}
-		return returnSentence;
-	}
-	
-	/**
-	 * 切换数据库
-	 * @param dbName
-	 * @return String
-	 */
-	public static String changeDatabase(String dbName){
-		File fi = new File("db/"+dbName);
-		if(!fi.exists()){
-			return "database is not exist";
-		}
-		return "change database OK";
-	}
-	
-	/**
-	 * 删除数据库
-	 * @param dbName
-	 * @param currentDbName
-	 * @return String
-	 */
-	public static String dropDatabase(String dbName,String currentDbName){
-		File fi = new File("db/"+dbName);
-		if(!fi.exists()){
-			return "database is not exist";
-		}
-		if(dbName.equals(currentDbName)){
-			return "database is in use";
-		}
-		deleteFiles(fi);
-		return "drop database OK";
-	}
-	
-	/**
-	 * 删除文件及目录
-	 * @param fi
-	 */
-	public static void deleteFiles(File fi){
-		if(fi.listFiles()!=null){
-			for(File file : fi.listFiles()){
-				if(file.isDirectory()){
-					deleteFiles(file);
-				}else{
-					file.delete();
-				}
-			}
-		}
-		fi.delete();
-	}
-	
-	/**
-	 * 删除表
-	 * @param tableName
-	 * @param currentDbName
-	 * @return
-	 */
-	public static String dropTables(String tableName, String currentDbName){
-		File fi = new File("db/"+currentDbName+"/"+tableName+".txt");
-		if(!fi.exists()){
-			return "this table not exist";
-		}
-		if(fi.delete()){
-			return "drop table OK";
-		}
-		return "drop table error";
-	}
-	
-	/**
-	 * 查询当前使用的数据库
-	 * @param currentDbName
-	 * @return String
-	 */
-	public static String selectDatabase(String currentDbName){
-		if(currentDbName.equals("/")){
-			return "no use database";
-		}
-		return currentDbName;
-	}
-	
-	/**
-	 * 查询表中全部信息
-	 * @param tableName
-	 * @param currentDbName
-	 * @param flag
-	 * @param condition
-	 * @return
-	 */
-	public static String selectAllFromTable(String tableName,String currentDbName) throws IOException{
-		File fi = new File("db/"+currentDbName+"/"+tableName+".txt");
-		if(!fi.exists()){
-			return "This table is not exist";
-		}
-		
-		FileInputStream in = new FileInputStream(fi);
-		byte [] readByte = new byte[400];
-		int n=0;
-		String s="";
-		while((n=in.read(readByte, 0, readByte.length))!=-1) {
-			String tt = new String(readByte,0,n);
-			s += tt;
-			System.out.print(tt);
-		}
-		in.close();
-		if(s=="") {
-			return "Empty set";
-		}
-		return s;
-	}
-	
-	/**
-	 * 根据条件查询   !!！只实现单条件等号判断
 	 * 1、给定某个学生的学号，查询这个学生的相关信息（姓名，性别，所在系名，所在寝室名称）
-	 * @param tableName
-	 * @param currentDbName
-	 * @param flag
-	 * @param condition
-	 * @return
-	 * @throws IOException 
-	 */
-	public static String selectFlagFromTable(String tableName,String currentDbName,String flag,String condition) throws IOException{
-		File fileTxt = new File("db/"+currentDbName+"/"+tableName+".txt");
-		File fileJson = new File("db/"+currentDbName+"/"+tableName+".json");
-		if(!fileTxt.exists()&&!fileJson.exists()){
-			return "This table is not exist";
-		}
-		
-		ArrayList<ColumnData> list = Util.fileToList(fileTxt, fileJson);
-		
-		ArrayList<Integer> numRow = new ArrayList<Integer>();
-		String [] arrayFlag = flag.split(",");
-		
-		//使用正则表达...
-		String [] arrayCondition = condition.split("=");
-		//select 学号,姓名 from 学生表 where 学号=200902009;
-		//将查询到的数存在临时list中
-		for (ColumnData lis : list) {
-			if(lis.getColumn().equals(arrayCondition[0])) {
-				if(lis.getData().equals(arrayCondition[1])) {
-					numRow.add(lis.getRow());
-				}
-			}
-		}
-		//输出相应的字段
-		if(numRow.size()!=0) {
-			String a="";
-			int j=0;
-			for (int i = 0; i <numRow.size(); i++) {
-				for (ColumnData lisTemp : list) {
-					if(lisTemp.getRow()==numRow.get(i)&& Arrays.asList(arrayFlag).contains(lisTemp.getColumn())) {
-						j++;
-						if(j%arrayFlag.length==0) {
-							a +=lisTemp.getData()+"\n";							
-						}else {
-							a +=lisTemp.getData()+"\t";							
-						}
-					}
-				}				
-			}
-			return a;
-		}
-		return "no result";
-	}
-	
-	/**
-	 * 2、给定某个学生的学号，查询选修了这位学生全部课程的学生信息。
-	 * @param tableName
-	 * @param currentDbName
-	 * @param stuNo
-	 * @param conditio
+	 * 
+	 * @param sno
 	 * @return
 	 * @throws IOException
 	 */
-	public static String selectInfoByCourse(String tableName,String currentDbName,String stuNo) throws IOException{
-		//获取行列表
-		ArrayList<ColumnRow> listRow = Util.fileToListByRow(currentDbName,"学生选课表");
-		
-//		System.out.println("行数："+listRow.size());
-		ArrayList<Integer> numRow = new ArrayList<Integer>();
-		//将查询到的数存在临时list中
-		for (ColumnRow lis : listRow) {
-			if(lis.getCds().get(0).getData().equals(stuNo)) {
-				numRow.add(lis.getCds().get(0).getRow());
-			}
+	public static String selectNo1(String sno) throws IOException {
+		ArrayList<String> list = null;
+		String response = "姓名\t性别\t所在系名\t所在寝室名\n";
+		list = Util.selectByFlag("sname,ssex,depno,dorno", "学生表", "sno=" + sno);
+		response += list.get(0) + "\t" + list.get(1) + "\t";
+		String temp = "";
+		if (list.get(2).equals("null")) {
+			response += "null" + "\t";
+		} else {
+			temp = Util.selectByFlag("depname", "系表", "depno=" + list.get(2)).get(0);
+			response += temp + "\t";
 		}
-		//该学生的所有课程
-		ArrayList<String> tempCourse = new ArrayList<String>();
-		for (Integer integer : numRow) {
-			for (ColumnRow columnRow : listRow) {
-				if(columnRow.getRowNum()==integer.intValue()) {
-					tempCourse.add(columnRow.getCds().get(1).getData());
-				}
-			}
+		if (list.get(3).equals("null")) {
+			response += "null" + "\n";
+		} else {
+			temp = Util.selectByFlag("dorname", "寝室信息表", "dorno=" + list.get(3)).get(0);
+			response += temp + "\t";
 		}
-		
-		//移除没有选这些课程的学生+并且移除所查询的那个学生
-		boolean jud = true;
-		boolean tempJud = true;
-		while(jud) {
-			for (int i = 0; i < listRow.size(); i++) {
-				if(stuNo.equals(listRow.get(i).getCds().get(0).getData())){
-					listRow.remove(i);
-					tempJud=false;
-					break;
-				}
-				if(!tempCourse.contains(listRow.get(i).getCds().get(1).getData())){
-					listRow.remove(i);
-					tempJud=false;
-					break;
-				}
-			}
-			if(jud&&tempJud) {
-				jud=false;				
-			}
-			tempJud = true;
-		}
-//		System.out.println("移除后的listRow的大小："+listRow.size());
-		
-		//数据库有问题，还需要继续移除。。。。。
-		ArrayList<ColumnRow> row = new ArrayList<ColumnRow>();
-		for (int i = 0; i < listRow.size(); i++) {
-			if(i==0) {
-				row.add(listRow.get(i));
-			}else {
-				jud = true;
-				tempJud = true;
-				for (int j = 0; j < row.size(); j++) {
-					if(row.get(j).getCds().get(0).getData().equals(listRow.get(i).getCds().get(0).getData())) {
-						if(row.get(j).getCds().get(1).getData().equals(listRow.get(i).getCds().get(1).getData())) {
-							tempJud=false;
-							break;
-						}
-					}
-				}
-				if(jud&&tempJud) {
-					row.add(listRow.get(i));			
-				}
-			}
-		}
-//		System.out.println("第二次操作后row的大小："+row.size());
-//		//输出
-//		int b=0;
-//		for (ColumnRow ll : row) {
-//			System.out.print(ll.getCds().get(0).getData()+" ");
-//			b++;
-//			if(b%10==0) {
-//				System.out.println(b/10+"行：");
-//			}
-//		}
-		
-		//判断同时都选这些课程的学生
-		ArrayList<Integer> num = new ArrayList<Integer>();//存出现次数
-		
-		for (int i = 0; i < row.size(); i++) {
-			int tt=0;  
-			for(int j=0;j<row.size();j++) {
-				if(row.get(j).getCds().get(0).getData().equals(row.get(i).getCds().get(0).getData())){
-					tt++;
-				}
-			}
-			num.add(tt);
-		}
-		//输出
-//		int aa=0;
-//		for (Integer integer : num) {
-//			aa++;
-//			if(aa%10==0) {
-//				System.out.println(aa/10+"行：");
-//			}else {
-//				System.out.print(integer+" ");
-//			}
-//		}
-		//将出现次数与同学所有课程数目相同的学生学号起来
-		ArrayList<String> tempStus = new ArrayList<String>();//存学号
-		
-		for (int i = 0; i < num.size(); i++) {
-			jud=true;
-			if(num.get(i)==tempCourse.size()) {
-				if(!tempStus.isEmpty()) {
-					for (String string : tempStus) {
-						if(string.equals(row.get(i).getCds().get(0).getData())) {
-							jud=false;
-							break;
-						}
-					}
-				}	
-				if(jud) {
-					tempStus.add(row.get(i).getCds().get(0).getData());											
-				}
-			}
-		}
-		//输出
-//		for (String string : tempStus) {
-//			System.out.println("找到的学生："+string);
-//		}
-		if(!tempStus.isEmpty()) {
-			String result ="学号\t姓名\t性别\t所在系\t手机号\t寝室号\n";
-			for (int i = 0; i < tempStus.size(); i++) {
-				result += selectFlagFromTable("学生表", currentDbName, "学号,姓名,性别,所在系,手机号,寝室", "学号="+tempStus.get(i));
-			}
-			return result;
-		}
-		return "no result";
+		list = null;
+		temp = null;
+		System.gc();
+		return response;
 	}
-	
-	/**
-	 * 3、给定某个教师的工号，查询其所上的每门课的平均成绩。
-	 * @param tableName
-	 * @param currentDbName
-	 * @param Tno
-	 * @return
-	 * @throws IOException
-	 */
-	public static String selectInfoByTno(String tableName,String currentDbName,String Tno) throws IOException{
-		//获取行列表
-		ArrayList<ColumnRow> listRowTC = Util.fileToListByRow(currentDbName,"教师授课表");
-		
-		System.out.println("行数："+listRowTC.size());
-		ArrayList<Integer> numRowTC = new ArrayList<Integer>();
-		//将查询到的数存在临时list中
-		for (ColumnRow lis : listRowTC) {
-			if(lis.getCds().get(0).getData().equals(Tno)) {
-				numRowTC.add(lis.getCds().get(0).getRow());
-			}
-		}
-		//该教师教授的所有课程
-		ArrayList<String> tempCourse = new ArrayList<String>();
-		for (Integer integer : numRowTC) {
-			for (ColumnRow columnRow : listRowTC) {
-				if(columnRow.getRowNum()==integer.intValue()) {
-					tempCourse.add(columnRow.getCds().get(1).getData());
-				}
-			}
-		}
-		for (String string : tempCourse) {
-			System.out.println("教授课程："+string);
-		}
-		
-		/*
-		 * 第二次查询，查询学生选课表
-		 */
-		
-		//获取行列表
-		ArrayList<ColumnRow> listRow = Util.fileToListByRow(currentDbName,"学生选课表");
-		System.out.println("行数："+listRow.size());
-		ArrayList<Integer> numRow = new ArrayList<Integer>();
-		//将查询到的行数存在临时list中
-		for (ColumnRow lis : listRow) {
-			if(lis.getCds().get(0).getData().equals(Tno)) {
-				numRow.add(lis.getCds().get(0).getRow());
-			}
-		}
-		
-		//移除没有选这些课程的学生+并且移除所查询的那个学生
-		boolean jud = true;
-		boolean tempJud = true;
-		while(jud) {
-			for (int i = 0; i < listRow.size(); i++) {
-				if(Tno.equals(listRow.get(i).getCds().get(0).getData())){
-					listRow.remove(i);
-					tempJud=false;
-					break;
-				}
-				if(!tempCourse.contains(listRow.get(i).getCds().get(1).getData())){
-					listRow.remove(i);
-					tempJud=false;
-					break;
-				}
-			}
-			if(jud&&tempJud) {
-				jud=false;				
-			}
-			tempJud = true;
-		}
-		
-		//数据库有问题，还需要继续移除。。。。。
-		ArrayList<ColumnRow> row = new ArrayList<ColumnRow>();
-		
-		for (int i = 0; i < listRow.size(); i++) {
-			if(i==0) {
-				row.add(listRow.get(i));
-			}else {
-				jud = true;
-				tempJud = true;
-				for (int j = 0; j < row.size(); j++) {
-					if(row.get(j).getCds().get(0).getData().equals(listRow.get(i).getCds().get(0).getData())) {
-						if(row.get(j).getCds().get(1).getData().equals(listRow.get(i).getCds().get(1).getData())) {
-							tempJud=false;
-							break;
-						}
-					}
-				}
-				if(jud&&tempJud) {
-					row.add(listRow.get(i));			
-				}
-			}
-		}
-		for (int i=0;i<row.size();i++) {
-			System.out.print(row.get(i).getCds().get(0).getData()+" ");
-			System.out.print(row.get(i).getCds().get(1).getData()+" ");
-			System.out.println(row.get(i).getCds().get(2).getData()+" ");
-		}
-		//计算老师课程的平均成绩
-		ArrayList<ColumnData> average = new ArrayList<ColumnData>();//存课程名和平均分
-		
-		
-		for (String string : tempCourse) {
-			ColumnData cd = new ColumnData();
-			cd.setColumn(string);
-			average.add(cd);
-		}
-		for (int i=0;i<row.size();i++) {
-			for (ColumnData columnData : average) {
-				if(columnData.getColumn().equals(row.get(i).getCds().get(1).getData())) {
-					int a=columnData.getRow()+1;
-					columnData.setRow(a);
-					int b=Integer.parseInt(row.get(i).getCds().get(2).getData());
-					int c=columnData.getData()==null?0:Integer.parseInt(columnData.getData());
-					columnData.setData(String.valueOf(b+c));
-				}
-			}
-		}
-		
-		if(!average.isEmpty()) {
-			String result ="课程号\t平均成绩\n";
-			for (ColumnData columnData : average) {
-				String r= columnData.getRow()==0?"0":String.valueOf(new DecimalFormat("0.000").format(Double.parseDouble(columnData.getData())/columnData.getRow()));
-				result += columnData.getColumn()+"\t"+r+"\n";
-			}
-			return result;
-		}
-		
-		return "no result"; 
-	}
-	
-	
-	/**
-	 * 4、统计每门课程的成绩信息（平均成绩，最高成绩，最低成绩，不及格人数）。
-	 * @return
-	 * @throws IOException
-	 */
-	public static String selectInformation(String currentDbName) throws IOException{
-		//获取行列表
-		ArrayList<ColumnRow> listRow = Util.fileToListByRow(currentDbName,"学生选课表");
-		System.out.println("行数："+listRow.size());
 
-		ArrayList<String> tempCourse = new ArrayList<String>();
-		for (int i = 0; i < listRow.size(); i++) {
-			if(!tempCourse.contains(listRow.get(i).getCds().get(1).getData())) {
-				tempCourse.add(listRow.get(i).getCds().get(1).getData());
-			}	
-		}
-		System.out.println("一共有"+tempCourse.size()+"门课程");
-		int a=0;
-		for (String string : tempCourse) {
-			System.out.print(string+" ");
-			a++;
-			if(a%5==0)
-				System.out.println();
-		}
-		//课程表中所有的课程  
-		//模拟：column(课程名) row(平均分) begin(最低成绩) end(最高成绩) data(不及格人数) num1(累计的总成绩) num2(单个课程的人数)
-		ArrayList<ColumnData> CourseAndGrade = new ArrayList<ColumnData>();
-		for (int i = 0; i < tempCourse.size(); i++) {
-			ColumnData cd = new ColumnData();
-			cd.setColumn(tempCourse.get(i));
-			cd.setRow(0);
-			cd.setBegin(1000);
-			cd.setEnd(-1);
-			cd.setData("0");
-			CourseAndGrade.add(cd);
-		}
-		//计算数据
-		//模拟：column(课程名) row(平均分) begin(最低成绩) end(最高成绩) data(不及格人数) num1(累计的总成绩) num2(单个课程的人数)
-		for (int i=0;i<listRow.size();i++) {
-			for (ColumnData columnData : CourseAndGrade) {
-				if(listRow.get(i).getCds().get(1).getData().equals(columnData.getColumn())) {
-					int temp=columnData.getNum1();
-					//单科累计总成绩
-					temp += Integer.parseInt(listRow.get(i).getCds().get(2).getData());
-					columnData.setNum1(temp);
-					//单科总人数
-					temp=columnData.getNum2()+1;
-					columnData.setNum2(temp);
-					//平均成绩
-					columnData.setRow(columnData.getNum1()/columnData.getNum2());
-					//最低成绩
-					if(Integer.parseInt(listRow.get(i).getCds().get(2).getData())<columnData.getBegin()) {
-						columnData.setBegin(Integer.parseInt(listRow.get(i).getCds().get(2).getData()));
+	public static String selectNo2(String sno) throws IOException {
+		ArrayList<String> listCnosFromStu = Util.selectByFlag("cno", "学生选课表", "sno=" + sno);
+		System.out.println(listCnosFromStu);
+		ArrayList<String> listSnos = Util.selectByFlag("sno", "学生表", "all");
+		System.out.println(listSnos);
+		String allStu = "";
+		for (String string : listSnos) {
+			if (!string.equals(sno)) {
+				ArrayList<String> listCnos = Util.selectByFlag("cno", "学生选课表", "sno=" + string);
+				boolean flag = true;
+				for (String string2 : listCnosFromStu) {
+					if (!listCnos.contains(string2) || listCnos.size() == 0) {
+						flag = false;
 					}
-					//最高成绩
-					if(Integer.parseInt(listRow.get(i).getCds().get(2).getData())>columnData.getEnd()) {
-						columnData.setEnd(Integer.parseInt(listRow.get(i).getCds().get(2).getData()));
-					}
-					//不及格人数
-					if(Integer.parseInt(listRow.get(i).getCds().get(2).getData())<60) {
-						temp=Integer.parseInt(columnData.getData())+1;
-						columnData.setData(String.valueOf(temp));
+				}
+				if (flag) {
+					System.out.println(listCnos);
+					if (listCnosFromStu.size() <= listCnos.size()) {
+						allStu += string + ",";
 					}
 				}
 			}
 		}
-		System.out.println();
-		for (ColumnData columnData : CourseAndGrade) {
-			System.out.println("课程："+columnData.getColumn()+"\t平均成绩"+columnData.getRow()+"\t最低分"+columnData.getBegin()+
-					"\t  最高分"+columnData.getEnd()+"\t   不及格人数"+columnData.getData()+"\t总成绩："+columnData.getNum1()+"\t单科人数："+columnData.getNum2());
+		System.out.println(allStu);
+		String response = "学号\t姓名\n";
+		if (allStu != "") {
+			for (int i = 0; i < allStu.split(",").length; i++) {
+				ArrayList<String> listResponse = Util.selectByFlag("sno,sname", "学生表", "sno=" + allStu.split(",")[i]);
+				response += listResponse.get(0) + "\t" + listResponse.get(1) + "\n";
+			}
+		} else {
+			System.out.println("没有同学选了这位同学的全部课程");
 		}
-		
-		return "no result";
+		System.out.println(response);
+		return response;
 	}
-	/**
-	 * 5、查询每个寝室里住的同学的平均成绩信息，并按平均成绩从高到低排列。
-	 * @return
-	 * @throws IOException 
-	 */
-	public static String selectAverageByDormitory(String currentDbName) throws IOException{
-		//获取寝室信息行列表
-		ArrayList<ColumnRow> listDor = Util.fileToListByRow(currentDbName,"寝室信息表");
-		System.out.println("寝室表行数："+listDor.size());
-		//生成寝室数据
-		//模拟：rowName(寝室号) num1(平均分) num2(寝室累计的总成绩) 
-		ArrayList<String> tempString = new ArrayList<String>();
-		ArrayList<ColumnRow> tempDor = new ArrayList<ColumnRow>();
-		for (int i = 0; i < listDor.size(); i++) {
-			if(!tempString.contains(listDor.get(i).getCds().get(0).getData())) {
-				tempString.add(listDor.get(i).getCds().get(0).getData());
-				ColumnRow cr=new ColumnRow();
-				cr.setRowName(listDor.get(i).getCds().get(0).getData());
-				tempDor.add(cr);
-			}	
-		}
-		System.out.println("一共有"+tempDor.size()+"个寝室");
-		int a=0;
-		for (ColumnRow columnRow : tempDor) {
-			System.out.print(columnRow.getRowName()+" ");
-			a++;
-			if(a%5==0)
-				System.out.println();
-		}
-		System.out.println();
-		
-		//获取学生行列表,将学生安排在各自宿舍中
-		ArrayList<ColumnRow> listSt = Util.fileToListByRow(currentDbName,"学生表");
-		System.out.println("学生表行数："+listSt.size());
-		for (int i=0;i<listSt.size();i++) {
-			for (ColumnRow columnRow1 : tempDor) {
-				if(listSt.get(i).getCds().get(5).getData().equals(columnRow1.getRowName())) {
-					columnRow1.getCds().add(listSt.get(i).getCds().get(0));
-				}
-			}
-		}
-		for (ColumnRow columnRow : tempDor) {
-			System.out.println("寝室号："+columnRow.getRowName()+" 寝室人数："+columnRow.getCds().size());
-		}
-		
-		//获取学生选课行列表
-		ArrayList<ColumnRow> listRow = Util.fileToListByRow(currentDbName,"学生选课表");
-		System.out.println("学生选课表行数："+listRow.size());
-		
-		//计算数据
-		//模拟：rowName(寝室号) num1(平均分) num2(寝室累计的总成绩) num3(寝室学生选的全部课程数) columnRow.getCds().size()(寝室中人数)
-		for (int i=0;i<listRow.size();i++) {
-			for (ColumnRow columnRow : tempDor) {
-				for(ColumnData columnData : columnRow.getCds()) {
-					if(listRow.get(i).getCds().get(0).getData().equals(columnData.getData())) {
-						//累加总成绩
-						int temp=columnRow.getNum2()+Integer.parseInt(listRow.get(i).getCds().get(2).getData());
-						columnRow.setNum2(temp); 
-						temp=columnRow.getNum3()+1;
-						columnRow.setNum3(temp);
-						//计算平均成绩
-						if(columnRow.getCds().size()!=0) {
-							columnRow.setNum1(columnRow.getNum2()/columnRow.getNum3());
-						}
-					}
-				}
-			}
-		}
-		System.out.println("***********************");
-		for (ColumnRow columnRow : tempDor) {
-			System.out.println("寝室名："+columnRow.getRowName()+" 平均成绩"+columnRow.getNum1());
-		}
-		
-		return "no result";
-	}
-	
-	/**
-	 * 6、找出每个学生超过他选修课程平均成绩的课程号。
-	 * @return
-	 * @throws IOException 
-	 */
-	public static String selectNo6(String currentDbName) throws IOException{
-		//获取学生选课行列表
-		ArrayList<ColumnRow> listRow = Util.fileToListByRow(currentDbName,"学生选课表");
-		System.out.println("行数："+listRow.size());
 
-		ArrayList<String> tempCourse = new ArrayList<String>();
-		for (int i = 0; i < listRow.size(); i++) {
-			if(!tempCourse.contains(listRow.get(i).getCds().get(1).getData())) {
-				tempCourse.add(listRow.get(i).getCds().get(1).getData());
-			}	
+	public static String selectNo3(String tno) throws IOException {
+		Util.init();
+		ArrayList<String> listCnos = Util.selectByFlag("cno", "教师授课表", "tno=" + tno);
+		String response = "课程号\t平均成绩\n";
+		for (String string : listCnos) {
+			ArrayList<String> listGrade = Util.selectByFlag("grade", "学生选课表", "cno=" + string);
+			int sum = 0;
+			for (String string2 : listGrade) {
+				sum += Integer.parseInt(string2);
+			}
+			response += string + "\t"
+					+ String.valueOf(new DecimalFormat("0.000").format((double) sum / listGrade.size())) + "\n";
 		}
-		System.out.println("一共有"+tempCourse.size()+"门课程");
-		int a=0;
-		for (String string : tempCourse) {
-			System.out.print(string+" ");
-			a++;
-			if(a%5==0)
-				System.out.println();
+		listCnos = null;
+		System.gc();
+		if (!response.equals("课程号\t平均成绩\n")) {
+			return response;
 		}
-		//课程表中所有的课程  
-		//模拟：column(课程名) row(平均分) num1(累计的总成绩) num2(单个课程的人数)
-		ArrayList<ColumnData> CourseAndGrade = new ArrayList<ColumnData>();
-		for (int i = 0; i < tempCourse.size(); i++) {
-			ColumnData cd = new ColumnData();
-			cd.setColumn(tempCourse.get(i));
-			cd.setRow(0);
-			cd.setNum1(0);
-			cd.setNum2(0);
-			CourseAndGrade.add(cd);
-		}
-		//计算数据
-		//模拟：column(课程名) row(平均分) num1(累计的总成绩) num2(单个课程的人数)
-		for (int i=0;i<listRow.size();i++) {
-			for (ColumnData columnData : CourseAndGrade) {
-				if(listRow.get(i).getCds().get(1).getData().equals(columnData.getColumn())) {
-					int temp=columnData.getNum1();
-					//单科累计总成绩
-					temp += Integer.parseInt(listRow.get(i).getCds().get(2).getData());
-					columnData.setNum1(temp);
-					//单科总人数
-					temp=columnData.getNum2()+1;
-					columnData.setNum2(temp);
-					//平均成绩
-					columnData.setRow(columnData.getNum1()/columnData.getNum2());
+		return "no result";
+	}
+
+	public static String selectNo4() throws IOException {
+		Util.init();
+		ArrayList<String> listCnos = Util.selectByFlag("cno", "课程信息表", "all");
+		System.out.println(listCnos.toString());
+		String response = "课程号\t平均成绩\t最高成绩\t不及格人数\n";			
+		for (String string : listCnos) {
+			ArrayList<String> listGrade = Util.selectByFlag("grade", "学生选课表", "cno=" + string);
+			System.out.println(listGrade.toString());
+			int maxGrade = 0, unPass = 0, sum = 0;
+			for (String string2 : listGrade) {
+				sum += Integer.parseInt(string2);
+				if (Integer.parseInt(string2) < 60) {
+					unPass++;
+				}
+				if (Integer.parseInt(string2) > maxGrade) {
+					maxGrade = Integer.parseInt(string2);
 				}
 			}
+			response += string + "\t"
+					+ String.valueOf(new DecimalFormat("0.000").format((double) sum / listGrade.size())) + "\t"
+					+ maxGrade + "\t" + unPass + "\n";
+			listGrade = null;
 		}
-		System.out.println();
-		for (ColumnData columnData : CourseAndGrade) {
-			System.out.println("课程："+columnData.getColumn()+"\t平均成绩"+columnData.getRow());
+		listCnos = null;
+		System.gc();
+		System.out.println(response);
+		return response;
+	}
+
+	public static String selectNo5() throws IOException {
+		ArrayList<String> listOrder=new ArrayList<String>();
+		ArrayList<String> listDors = Util.selectByFlag("dorno", "寝室信息表", "all");
+//		System.out.println(listDors.toString());
+		String response = "宿舍号\t宿舍平均成绩\n";
+		for (int i = 0; i < listDors.size(); i++) {
+//			System.out.println(listDors.get(i));
+			ArrayList<String> listStu = Util.selectByFlag("sno", "学生表", "dorno=" + listDors.get(i));
+			System.out.println(listStu.toString());
+			double sum = 0, numCourse = 0, averageGrade = 0;
+			for (String string : listStu) {
+				ArrayList<String> listGrade = Util.selectByFlag("grade", "学生选课表", "sno=" + string);
+//				System.out.print("学号："+string+"成绩"+listGrade.toString());
+				for (String string2 : listGrade) {
+					sum += Integer.parseInt(string2);
+					numCourse++;
+				}
+				listGrade = null;
+//				System.out.println(" 当前课程总数："+numCourse+" 课程总分："+sum);
+			}
+//			System.out.println("总成绩"+sum+" 课程数 "+numCourse);
+			averageGrade = numCourse == 0 ? 0 : sum / numCourse;
+			listOrder.add(String.valueOf(new DecimalFormat("0.000").format(averageGrade))+"#"+listDors.get(i));
+//			response += listDors.get(i) + "\t" + String.valueOf(new DecimalFormat("0.000").format(averageGrade)) + "\n";
+			listStu = null;
 		}
-		//获取学生信息
-		ArrayList<ColumnRow> listStu = Util.fileToListByRow(currentDbName,"学生表");
-		System.out.println("学生表行数："+listStu.size());
-		ArrayList<ColumnRow> tempStu = new ArrayList<ColumnRow>();
-		for (ColumnRow columnRow : listStu) {
-			if(tempStu.size()==0) {
-				ColumnRow cr =new ColumnRow();
-				cr.setRowName(columnRow.getCds().get(0).getData());//设置学生学号
-				tempStu.add(cr);
-			}else {
-				boolean had1=true,had2=false;
-				for (ColumnRow columnRow2 : tempStu) {
-					if(columnRow2.getRowName().equals(columnRow.getCds().get(0).getData())) {
-						had2=true;
+		Collections.sort(listOrder, new Comparator<String>() {
+			@Override
+			public int compare(String o1, String o2) {
+				if (o1.compareTo(o2) < 0) {
+					return 1;
+				} else {
+					return -1;
+				}
+			}
+		});
+		for (String string : listOrder) {
+			response += string.split("#")[1]+"\t"+string.split("#")[0]+"\n";
+		}
+		listDors = null;
+		System.gc();
+		System.out.println(response);
+		return response;
+	}
+
+	public static String selectNo6() throws IOException {
+		ArrayList<String> listStus = Util.selectByFlag("sno", "学生表", "all");
+		String response = "学生号\t超过平均成绩的课程号\n";
+		for (String string : listStus) {
+			ArrayList<String> listCnosFromStu = Util.selectByFlag("cno,grade", "学生选课表", "sno="+string);
+			if(listCnosFromStu.size()==0||listCnosFromStu.size()==2) {
+				continue;
+			}
+			System.out.println(listCnosFromStu.toString());
+			double sum=0;
+			for (int i = 1; i < listCnosFromStu.size(); i=i+2) {	
+				sum +=Integer.parseInt(listCnosFromStu.get(i));
+			}
+			double avg=sum/(listCnosFromStu.size()/2);
+			response +=string;
+			for (int i = 1; i < listCnosFromStu.size(); i=i+2) {
+				int cha=Integer.parseInt(listCnosFromStu.get(i));
+				if(cha>avg) {
+					response +="\t"+listCnosFromStu.get(i-1);
+				}
+			}
+			response +="\n";
+		}
+		listStus=null;
+		System.gc();
+		System.out.println(response);
+		return response;
+	}
+
+	public static String selectNo7() throws IOException {
+		Util.init();
+		ArrayList<String> listSno = Util.selectByFlag("sno", "学生表", "all");
+		System.out.println(listSno);
+		String names = "";
+		for (String string : listSno) {
+			ArrayList<String> listCno = Util.selectByFlag("cno", "学生选课表", "sno=" + string);
+//		System.out.println(string+" ## "+listCno);
+			for (String string2 : listCno) {
+				ArrayList<String> listFcno = Util.selectByFlag("fcno", "课程信息表", "cno=" + string2);
+//			System.out.println(listFcno);
+				if (listFcno.get(0) != "null") {
+					if (listCno.contains(listFcno.get(0))) {
+						System.out.println(string + "#" + listCno + "#" + listFcno);
+						names += string + "#";
+						break;
 					}
 				}
-				if(!(had1&&had2)) {
-					ColumnRow cr =new ColumnRow();
-					cr.setRowName(columnRow.getCds().get(0).getData());
-					tempStu.add(cr);
-				}
+				listFcno = null;
 			}
+			listCno = null;
 		}
-		System.out.println("临时学生表行数："+tempStu.size());
-		
-		//将选课信息加到临时学生表中
-		for (ColumnRow columnRow : listRow) {
-			for (ColumnRow columnRow2 : tempStu) {
-				if(columnRow.getCds().get(0).getData().equals(columnRow2.getRowName())) {
-					if(columnRow2.getCds().size()==0) {
-						ColumnData cd =new ColumnData();
-						cd.setData(columnRow.getCds().get(1).getData());//设置选修的课程号
-						cd.setNum1(Integer.parseInt(columnRow.getCds().get(2).getData()));//设置这门课程的成绩
-						columnRow2.getCds().add(cd);
-					}else {
-						boolean had1=true,had2=false;
-						for (ColumnData columnData : columnRow2.getCds()) {
-							if(columnData.getData().equals(columnRow.getCds().get(1).getData())) {
-								had2=true;
+		System.out.println(listSno.size() + "啊啊啊" + names.split("#").length);
+		System.out.println(names);
+		String response = "选课不符合规定的学生\n";
+		for (int i = 0; i < names.split("#").length; i++) {
+			response += Util.selectByFlag("sname", "学生表", "sno=" + names.split("#")[i]).get(0) + "\n";
+		}
+		listSno = null;
+		System.gc();
+		System.out.println(response);
+
+		return response;
+	}
+
+	public static String selectNo8() throws IOException {
+		String tno = Util.selectByFlag("sno", "学生表", "sname=朱红恒").get(0);
+		System.out.println(tno);
+		String cno = Util.selectByFlag("cno", "课程信息表", "cname=计算机控制理论及应用").get(0);
+		System.out.println(cno);
+		String insert = tno + "\t" + cno + "\t80\n";
+		Util.fileAppend("学生选课表", insert.getBytes(), -1, -1);
+		System.out.println("插入完成");
+		return "插入完成";
+	}
+
+	public static String selectNo9(String num) throws IOException {
+//	String num="3";
+		switch (num) {
+		case "1":
+			System.out.println("Not allow");
+			return "Not allow";
+		case "2":
+			ArrayList<String> line = Util.selectByFlag("depno,depname,deptel,depmaster", "系表", "depname=保密专业系");
+			String insert = "\0\0\t";
+			for (int i = 1; i < line.size(); i++) {
+				insert += line.get(i) + "\t";
+			}
+			System.out.println(insert);
+			File file = new File("db/系表.txt");
+			RandomAccessFile raf = new RandomAccessFile(file, "rw");
+			String temp = null;
+			long start = 0;
+			while ((temp = raf.readLine()) != null) {
+				temp = new String(temp.getBytes("ISO-8859-1"), "GBK");
+				long end = raf.getFilePointer();
+				if (temp.contains("保密专业系")) {
+					System.out.println(temp + "#" + start + "#" + end);
+					raf.seek(start);
+					raf.write(insert.getBytes());
+				} else {
+					System.out.println("not " + temp + "#" + start + "#" + end);
+				}
+				start = end;
+			}
+			return "置空修改完成";
+		case "3":
+			String orignDepno = Util.selectByFlag("depno", "系表", "depname=保密专业系").get(0);
+			String newDepno = "08";
+			NO3(orignDepno, newDepno);
+			return "级联修改完成";
+		}
+		return "no result";
+	}
+
+	public static void NO3(String orignDepno, String newDepno) throws IOException {
+		// 第一次修改系表
+		Util.init();
+		boolean flag = true;
+		int i = 0, j = 0, num1 = 0, num2 = 0, location = 0;
+		String line = null;
+		RandomAccessFile raf = new RandomAccessFile("db/系表.txt", "rw");
+		while (flag) {
+			if (raf.read(Ram.a) != -1) {
+				num2 = 0;
+				for (i = 0; i < Ram.a.length; i++) {
+					if (Ram.a[i] == '\n') {
+						j = i;
+						line = new String(Ram.a, num2, i - 1 - num2);
+						location = Util.jsonArrayLocation("系表", "depno");
+						System.out.println(line + "#" + (num1 + num2) + "#" + (num1 + j - 1));
+						if (line.split("\t")[location].equals(orignDepno)) {
+							int start = num1 + num2, end = 0;
+							for (int k = 0; k < line.split("\t").length; k++) {
+								if (location == k) {
+									start = (k != 0) ? (start + location * ("\t".getBytes().length)) : (start);
+									end = start + line.split("\t")[k].length();
+									System.out.println("location:" + location + "start:" + start + " end:" + end);
+									raf.seek(start);
+									raf.write(newDepno.getBytes());
+									System.out.println(raf.getFilePointer());
+									break;
+								} else {
+									start += line.split("\t")[k].length();
+									System.out.println("k:" + k + "start:" + start);
+								}
 							}
 						}
-						if(!(had1&&had2)) {
-							ColumnData cd =new ColumnData();
-							cd.setData(columnRow.getCds().get(1).getData());//设置选修的课程号
-							cd.setNum1(Integer.parseInt(columnRow.getCds().get(2).getData()));//设置这门课程的成绩
-							columnRow2.getCds().add(cd);
-						}
+						num2 = i + 1;
 					}
 				}
-			}
-		}
-		for (ColumnRow columnRow : tempStu) {
-			System.out.println("学生："+columnRow.getRowName()+" 门数： "+columnRow.getCds().size());
-			for (ColumnData columnData : columnRow.getCds()) {
-				System.out.print("   "+columnData.getData()+" "+columnData.getNum1());
-			}
-			System.out.println();
-		}
-		//输出每个学生比平均成绩高的课程
-		System.out.println("###############################################################\n"
-				+ "###############################################################");
-		for (ColumnRow columnRow : tempStu) {
-			System.out.print("学生："+columnRow.getRowName()+" 课程：");
-			for (ColumnData columnData : columnRow.getCds()) {
-				for (ColumnData columnData2 : CourseAndGrade) {
-					if(columnData.getData().equals(columnData2.getColumn())) {
-						if(columnData.getNum1()>columnData2.getRow()) {
-							System.out.print("\t"+columnData.getData());
-						}
+				for (i = 0; i < Ram.a.length; i++) {
+					if (Ram.a[i] == 0) {
+						flag = false;
+						break;
 					}
 				}
+				raf.seek(num1 + j + 1);
+				num1 = num1 + j + 1;
+				Util.init();
 			}
-			System.out.println();
+		}
+		raf.close();
+		// 第二次修改学生表
+		Util.init();
+		flag = true;
+		i = 0;
+		j = 0;
+		num1 = 0;
+		num2 = 0;
+		location = 0;
+		line = null;
+		RandomAccessFile raf1 = new RandomAccessFile("db/学生表.txt", "rw");
+		while (flag) {
+			if (raf1.read(Ram.a) != -1) {
+				num2 = 0;
+				for (i = 0; i < Ram.a.length; i++) {
+					if (Ram.a[i] == '\n') {
+						j = i;
+						line = new String(Ram.a, num2, i - 1 - num2);
+						location = Util.jsonArrayLocation("学生表", "depno");
+						System.out.println(line + "#" + (num1 + num2) + "#" + (num1 + j - 1));
+						if (line.split("\t")[location].equals(orignDepno)) {
+							int start = num1 + num2, end = 0;
+							for (int k = 0; k < line.split("\t").length; k++) {
+								if (location == k) {
+									start = (k != 0) ? (start + location * ("\t".getBytes().length)) : (start);
+									end = start + line.split("\t")[k].length();
+									System.out.println("location:" + location + "start:" + start + " end:" + end);
+									raf1.seek(start);
+									raf1.write(newDepno.getBytes());
+									System.out.println(raf1.getFilePointer());
+									break;
+								} else {
+									start += line.split("\t")[k].getBytes().length;
+									System.out.println("k:" + k + " cond:" + line.split("\t")[k] + " start:" + start);
+								}
+							}
+						}
+						num2 = i + 1;
+					}
+				}
+				for (i = 0; i < Ram.a.length; i++) {
+					if (Ram.a[i] == 0) {
+						flag = false;
+						break;
+					}
+				}
+				raf1.seek(num1 + j + 1);
+				num1 = num1 + j + 1;
+				Util.init();
+			}
+		}
+		raf1.close();
+		// 第三次修改教师表
+		Util.init();
+		flag = true;
+		i = 0;
+		j = 0;
+		num1 = 0;
+		num2 = 0;
+		location = 0;
+		line = null;
+		RandomAccessFile raf2 = new RandomAccessFile("db/教师表.txt", "rw");
+		while (flag) {
+			if (raf2.read(Ram.a) != -1) {
+				num2 = 0;
+				for (i = 0; i < Ram.a.length; i++) {
+					if (Ram.a[i] == '\n') {
+						j = i;
+						line = new String(Ram.a, num2, i - 1 - num2);
+						location = Util.jsonArrayLocation("教师表", "depno");
+						System.out.println(line + "#" + (num1 + num2) + "#" + (num1 + j - 1));
+						if (line.split("\t")[location].equals(orignDepno)) {
+							int start = num1 + num2, end = 0;
+							for (int k = 0; k < line.split("\t").length; k++) {
+								if (location == k) {
+									start = (k != 0) ? (start + location * ("\t".getBytes().length)) : (start);
+									end = start + line.split("\t")[k].length();
+									System.out.println("location:" + location + "start:" + start + " end:" + end);
+									raf2.seek(start);
+									raf2.write(newDepno.getBytes());
+									System.out.println(raf2.getFilePointer());
+									break;
+								} else {
+									start += line.split("\t")[k].getBytes().length;
+									System.out.println("k:" + k + " cond:" + line.split("\t")[k] + " start:" + start);
+								}
+							}
+						}
+						num2 = i + 1;
+					}
+				}
+				for (i = 0; i < Ram.a.length; i++) {
+					if (Ram.a[i] == 0) {
+						flag = false;
+						break;
+					}
+				}
+				raf2.seek(num1 + j + 1);
+				num1 = num1 + j + 1;
+				Util.init();
+			}
+		}
+		raf2.close();
+	}
+
+	public static String selectNo10(String num) throws IOException {
+		RandomAccessFile raf = null;
+		String temp = null;
+		File fileOld = null;
+		File fileOperate = null;
+		File fileNew = null;
+		switch (num) {
+		case "1":
+			System.out.println("Not allow");
+			return "NOt allow";
+		case "2":
+			raf = new RandomAccessFile("db/系表.txt", "rw");
+			while ((temp = raf.readLine()) != null) {
+				temp = new String(temp.getBytes("ISO-8859-1"), "GBK") + "\n";
+				System.out.println(temp);
+				if (!temp.contains("电子商务系")) {
+					Util.fileAppend("temp系表", temp.getBytes(), -1, -1);
+				}
+			}
+			fileOld = new File("db/系表.txt");
+			fileOld.delete();
+			fileNew = new File("db/系表.txt");
+			fileNew.createNewFile();
+			fileOperate = new File("db/temp系表.txt");
+			fileOperate.renameTo(fileNew);
+			fileOperate.delete();
+			System.out.println("执行");
+			return "删除完成";
+		case "3":
+			String depno = Util.selectByFlag("depno", "系表", "depname=电子商务系").get(0);
+			// 操作系表
+			raf = new RandomAccessFile("db/系表.txt", "rw");
+			while ((temp = raf.readLine()) != null) {
+				temp = new String(temp.getBytes("ISO-8859-1"), "GBK") + "\n";
+				System.out.println(temp);
+				if (!temp.contains("电子商务系")) {
+					Util.fileAppend("temp系表", temp.getBytes(), -1, -1);
+				}
+			}
+			fileOld = new File("db/系表.txt");
+			fileOld.delete();
+			fileNew = new File("db/系表.txt");
+			fileNew.createNewFile();
+			fileOperate = new File("db/temp系表.txt");
+			fileOperate.renameTo(fileNew);
+			fileOperate.delete();
+			// 操作学生表
+			raf = new RandomAccessFile("db/学生表.txt", "rw");
+			while ((temp = raf.readLine()) != null) {
+				temp = new String(temp.getBytes("ISO-8859-1"), "GBK") + "\n";
+				System.out.println(temp);
+				if (!temp.split("\t")[Util.jsonArrayLocation("学生表", "depno")].equals(depno)) {
+					Util.fileAppend("temp学生表", temp.getBytes(), -1, -1);
+				}
+			}
+			fileOld = new File("db/学生表.txt");
+			fileOld.delete();
+			fileNew = new File("db/学生表.txt");
+			fileNew.createNewFile();
+			fileOperate = new File("db/temp学生表.txt");
+			fileOperate.renameTo(fileNew);
+			fileOperate.delete();
+			// 操作教师表
+			raf = new RandomAccessFile("db/教师表.txt", "rw");
+			while ((temp = raf.readLine()) != null) {
+				temp = new String(temp.getBytes("ISO-8859-1"), "GBK") + "\n";
+				System.out.println(temp);
+				String split = temp.split("\t")[Util.jsonArrayLocation("教师表", "depno")].split("\n")[0];
+				if (!split.equals(depno)) {
+					System.out.println(split + "#" + depno);
+					System.out.println(split.equals(depno));
+					Util.fileAppend("temp教师表", temp.getBytes(), -1, -1);
+				}
+			}
+			fileOld = new File("db/教师表.txt");
+			fileOld.delete();
+			fileNew = new File("db/教师表.txt");
+			fileNew.createNewFile();
+			fileOperate = new File("db/temp教师表.txt");
+			fileOperate.renameTo(fileNew);
+			fileOperate.delete();
+			return "删除完成";
 		}
 		return "no result";
 	}
-//	public static String dropDatabase3(){
-//		
-//		return "OK";
-//	}
+
+	public static String selectNoSecond_1(String tableName, String conditions, String flag) throws IOException {
+		JSONTokener jt = null;
+		JSONObject jo = null;
+		if (flag.equals("add")) {
+			String judge = "";
+			for (int i = 0; i < conditions.split(",").length; i++) {
+				boolean isCould = true;
+				ArrayList<String> list = Util.selectByFlag(conditions.split(",")[i], tableName, "all");
+				Collections.sort(list, new Comparator<String>() {
+					@Override
+					public int compare(String o1, String o2) {
+						if (o1.compareTo(o2) > 0) {
+							return 1;
+						} else {
+							return -1;
+						}
+					}
+				});
+				// 判断是否有缺失重复
+				for (int j = 0; j < list.size() - 1; j++) {
+					if (list.get(j).equals(list.get(j + 1))) {
+						System.out.println("重复信息：" + list.get(j));
+						isCould = false;
+						break;
+					}
+				}
+				if (isCould) {
+					// 判断是否为空null
+					for (String string : list) {
+						if (string.equals("null")) {
+							System.out.println("出现空数据");
+							isCould = false;
+							break;
+						}
+					}
+				}
+				if (isCould) {
+					judge += "1";
+				} else {
+					judge += "0";
+				}
+			}
+			// 判断组合的情况
+			if (conditions.split(",").length != 1) {
+				boolean isCould = true;
+				ArrayList<String> list = Util.selectByFlag(conditions, tableName, "all");
+//			System.out.println(list);
+				ArrayList<String> list1 = new ArrayList<String>();
+				String temp = "";
+				for (int i = 0; i < list.size(); i++) {
+					if (i == 0) {
+						temp += list.get(i);
+					} else {
+						if (i % conditions.split(",").length != 0) {
+							temp += list.get(i);
+						} else {
+							list1.add(temp);
+							temp = "";
+							temp += list.get(i);
+						}
+					}
+				}
+//			System.out.println(list1);
+				Collections.sort(list1, new Comparator<String>() {
+					@Override
+					public int compare(String o1, String o2) {
+						if (o1.compareTo(o2) > 0) {
+							return 1;
+						} else {
+							return -1;
+						}
+					}
+				});
+				// 判断是否有重复
+				for (int j = 0; j < list1.size() - 1; j++) {
+					if (list1.get(j).equals(list1.get(j + 1))) {
+						System.out.println("联合主键重复信息：" + list1.get(j));
+						isCould = false;
+						break;
+					}
+				}
+				if (isCould) {
+					// 判断是否为空null
+					for (String string : list) {
+						if (string.equals("nullnull")) {
+							System.out.println("联合主键空数据：");
+							isCould = false;
+							break;
+						}
+					}
+				}
+				if (isCould) {
+					judge += "1";
+				} else {
+					judge += "0";
+				}
+			}
+			System.out.println(judge);
+			if (judge.contains("1")) {
+				jt = new JSONTokener(new FileReader("db/" + tableName + ".json"));
+				jo = (JSONObject) jt.nextValue();
+				System.out.println(jo.toString());
+				System.out.println(jo.getString("tableName"));
+				jo.remove("primaryKey");
+				jo.put("primaryKey", conditions);
+				FileOutputStream fos = new FileOutputStream("db/" + tableName + ".json");
+				fos.write(jo.toString().getBytes());
+				fos.close();
+				if (!jo.get("primaryKey").equals("")) {
+					System.out.println(conditions + "能够做主键" + " 主键定义成功");
+					return conditions + "能够做主键" + " 主键定义成功";
+				} else {
+					System.out.println(conditions + "能够做主键" + " 主键定义失败");
+					return conditions + "能够做主键" + " 主键定义失败";
+				}
+			} else {
+				System.out.println(conditions + "不能做主键");
+				return conditions + "不能够做主键";
+			}
+		}
+		if (flag.equals("delete")) {
+			jt = new JSONTokener(new FileReader("db/" + tableName + ".json"));
+			jo = (JSONObject) jt.nextValue();
+			System.out.println(jo.toString());
+			System.out.println(jo.getString("tableName"));
+			jo.remove("primaryKey");
+			jo.put("primaryKey", "");
+			FileOutputStream fos = new FileOutputStream("db/" + tableName + ".json");
+			fos.write(jo.toString().getBytes());
+			fos.close();
+			if (jo.get("primaryKey").equals("")) {
+				System.out.println("删除主键定义成功");
+				return "删除主键定义成功";
+			} else {
+				System.out.println("删除主键定义失败");
+				return "删除主键定义失败";
+			}
+		}
+		return "no result";
+	}
+
+	public static String selectNoSecond_2(String tableName, String conditions, String tableNameRefer,
+			String conditionsRefer, String flag) throws IOException {
+		JSONTokener jt = null;
+		JSONObject jo = null;
+		if (flag.equals("add")) {
+			// 查找相同字段
+			String same = "";
+			for (int i = 0; i < conditions.split(",").length; i++) {
+				for (int j = 0; j < conditionsRefer.split(",").length; j++) {
+					if (conditions.split(",")[i].equals(conditionsRefer.split(",")[j])) {
+						same += conditions.split(",")[i] + ",";
+					}
+				}
+			}
+			System.out.println(same);
+			// 去掉最后一个逗号
+			if (same.split(",").length == 1) {
+				same = same.split(",")[0];
+			}
+			if (same != "") {
+				String judge = "";
+				boolean isCould = true;
+				for (int i = 0; i < same.split(",").length; i++) {
+					ArrayList<String> list = Util.selectByFlag(same.split(",")[i], tableNameRefer, "all");
+					Collections.sort(list, new Comparator<String>() {
+						@Override
+						public int compare(String o1, String o2) {
+							if (o1.compareTo(o2) > 0) {
+								return 1;
+							} else {
+								return -1;
+							}
+						}
+					});
+					// 判断是否有重复
+					for (int j = 0; j < list.size() - 1; j++) {
+						if (list.get(j).equals(list.get(j + 1))) {
+							isCould = false;
+							break;
+						}
+					}
+					if (isCould) {
+						// 判断是否为空null
+						for (String string : list) {
+							if (string.equals("null")) {
+								isCould = false;
+								break;
+							}
+						}
+					}
+					if (isCould) {
+						judge += "1";
+					} else {
+						judge += "0";
+					}
+				}
+				if (!judge.contains("0")) {
+					jt = new JSONTokener(new FileReader("db/" + tableName + ".json"));
+					jo = (JSONObject) jt.nextValue();
+					System.out.println(jo.toString());
+					System.out.println(jo.getString("tableName"));
+					jo.remove("foreignKey");
+					jo.put("foreignKey", same);
+					FileOutputStream fos = new FileOutputStream("db/" + tableName + ".json");
+					fos.write(jo.toString().getBytes());
+					fos.close();
+					if (!jo.get("foreignKey").equals("")) {
+						System.out.println(same + "能够做外键" + " 外键定义成功");
+						return same + "能够做外键" + " 外键定义成功";
+					} else {
+						System.out.println(same + "能够做外键" + " 外键定义失败");
+						return same + "能够做外键" + " 外键定义失败";
+					}
+				} else {
+					System.out.println(conditions + "不能做主键");
+					return conditions + "不能做主键";
+				}
+			} else {
+				System.out.println("不存在外键约束");
+				return "不存在外键约束";
+			}
+		}
+		if (flag.equals("delete")) {
+			jt = new JSONTokener(new FileReader("db/" + tableName + ".json"));
+			jo = (JSONObject) jt.nextValue();
+			System.out.println(jo.toString());
+			System.out.println(jo.getString("tableName"));
+			jo.remove("foreignKey");
+			jo.put("foreignKey", "");
+			FileOutputStream fos = new FileOutputStream("db/" + tableName + ".json");
+			fos.write(jo.toString().getBytes());
+			fos.close();
+			if (jo.get("foreignKey").equals("")) {
+				System.out.println("删除外键定义成功");
+				return "删除外键定义成功";
+			} else {
+				System.out.println("删除外键定义失败");
+				return "删除外键定义失败";
+			}
+		}
+		return "no result";
+	}
+//public static String selectNo2(String sno) throws IOException {
+//
+//return "no result";
+//}
+
 }

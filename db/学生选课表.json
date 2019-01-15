@@ -1,0 +1,4 @@
+{
+	"tableName":"学生选课表",
+	"column":["sno","cno","grade"]
+}

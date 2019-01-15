@@ -1,0 +1,4 @@
+{
+	"tableName":"课程信息表",
+	"column":["cno","cname","cgrade","fcno"]
+}
